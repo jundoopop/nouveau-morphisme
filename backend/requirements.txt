@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+python-multipart
+rembg
+pillow
+numpy
+trimesh
+torch
+torchvision
+onnxruntime
+transformers
+scipy
+accelerate
+einops
