@@ -49,7 +49,7 @@ from fastapi.responses import Response
 
 
 @app.post("/remove-bg")
-async def remove_background(file: UploadFile = File(...)):
+async def remove_image_background(file: UploadFile = File(...)):
     contents = await file.read()
     input_image = Image.open(io.BytesIO(contents))
 
@@ -64,126 +64,75 @@ async def remove_background(file: UploadFile = File(...)):
     return Response(content=img_bytes, media_type="image/png")
 
 
-# Load Depth Model
-from transformers import AutoImageProcessor, AutoModelForDepthEstimation
-import numpy as np
+# Load TripoSR Model
+from tsr.system import TSR
+from tsr.utils import remove_background, resize_foreground, save_video
 import trimesh
+import numpy as np
 
-# Initialize Depth Model (Lazy load or global)
-# Using Depth Anything V2 for better details
-depth_processor = AutoImageProcessor.from_pretrained(
-    "depth-anything/Depth-Anything-V2-Small-hf"
+# Initialize TripoSR Model
+# This will download the model weights automatically
+model = TSR.from_pretrained(
+    "stabilityai/TripoSR",
+    config_name="config.yaml",
+    weight_name="model.ckpt",
 )
-depth_model = AutoModelForDepthEstimation.from_pretrained(
-    "depth-anything/Depth-Anything-V2-Small-hf"
-)
+model.to(DEVICE)
+
+
+def get_model_config(device_type):
+    """
+    Returns model configuration based on the device.
+    """
+    if device_type.type == "cuda":
+        return {"resolution": 256}  # High quality for GPU
+    elif device_type.type == "mps":
+        return {"resolution": 256}  # High quality for Metal (Mac)
+    else:
+        return {"resolution": 128}  # Lower quality for CPU to save time
 
 
 @app.post("/generate-mesh")
 async def generate_mesh(file: UploadFile = File(...)):
     contents = await file.read()
-    original_image = Image.open(io.BytesIO(contents))
+    input_image = Image.open(io.BytesIO(contents))
 
-    # 0. Remove Background (Ensure RGBA)
-    input_image = remove(original_image).convert("RGBA")
+    # 1. Preprocess Image
+    # Remove background if not already transparent (TripoSR expects transparent bg)
+    # We can use rembg or TripoSR's utility.
+    # Let's use TripoSR's utility for consistency with their pipeline.
+    # Note: tsr.utils.remove_background might use rembg internally or similar.
 
-    # Create RGB copy for depth estimation (Depth Anything expects 3 channels)
-    input_image_rgb = input_image.convert("RGB")
+    # Ensure RGBA
+    if input_image.mode != "RGBA":
+        input_image = input_image.convert("RGBA")
 
-    # 1. Estimate Depth
-    inputs = depth_processor(images=input_image_rgb, return_tensors="pt")
+    # Remove background
+    # We already have rembg imported as remove, but let's use the one from tsr.utils if it's better suited
+    # actually tsr.utils.remove_background takes an image and returns an image with bg removed.
+    # But let's stick to our previous rembg if we want, OR use tsr.utils.
+    # Let's use tsr.utils.remove_background to be safe with what the model expects.
+
+    # However, looking at TripoSR source, they often use rembg.
+    # Let's use the imported remove_background from tsr.utils
+
+    # Preprocessing
+    image_processed = remove_background(input_image, rembg_session=None)
+    image_processed = resize_foreground(image_processed, ratio=0.85)
+
+    # 2. Run TripoSR
     with torch.no_grad():
-        outputs = depth_model(**inputs)
-        predicted_depth = outputs.predicted_depth
+        scene_codes = model(image_processed, device=DEVICE)
 
-    # Interpolate to original size
-    prediction = torch.nn.functional.interpolate(
-        predicted_depth.unsqueeze(1),
-        size=input_image.size[::-1],
-        mode="bicubic",
-        align_corners=False,
-    )
+    # 3. Extract Mesh
+    config = get_model_config(DEVICE)
+    logger.info(f"Generating mesh with config: {config}")
 
-    # Normalize depth
-    depth_map = prediction.squeeze().cpu().numpy()
-    depth_min = depth_map.min()
-    depth_max = depth_map.max()
-    depth_map = (depth_map - depth_min) / (depth_max - depth_min)
+    meshes = model.extract_mesh(scene_codes, resolution=config["resolution"])
+    mesh = meshes[0]
 
-    # 2. Create Mesh
-    # Downsample for performance if needed, but let's try full res or slightly reduced
-    # For an icon, 256x256 is plenty for geometry
-    mesh_res = 256
-    image_small = input_image.resize((mesh_res, mesh_res))
-
-    # Extract alpha for masking
-    alpha_small = np.array(image_small)[:, :, 3] / 255.0
-
-    depth_small = (
-        torch.nn.functional.interpolate(
-            torch.from_numpy(depth_map).unsqueeze(0).unsqueeze(0),
-            size=(mesh_res, mesh_res),
-            mode="bilinear",
-        )
-        .squeeze()
-        .numpy()
-    )
-
-    # Create vertices
-    x = np.linspace(-1, 1, mesh_res)
-    y = np.linspace(-1, 1, mesh_res)
-    xv, yv = np.meshgrid(x, -y)  # Flip Y for 3D coords
-
-    # Depth extrusion amount
-    extrusion_scale = 0.5
-    zv = depth_small * extrusion_scale
-
-    vertices = np.stack([xv.flatten(), yv.flatten(), zv.flatten()], axis=1)
-
-    # Create faces with alpha masking
-    faces = []
-    alpha_threshold = 0.1  # Threshold to consider a pixel "visible"
-
-    for i in range(mesh_res - 1):
-        for j in range(mesh_res - 1):
-            # Grid indices
-            idx = i * mesh_res + j
-
-            # Check alpha of the 4 corners of the quad
-            # (i, j), (i, j+1), (i+1, j), (i+1, j+1)
-            a1 = alpha_small[i, j]
-            a2 = alpha_small[i, j + 1]
-            a3 = alpha_small[i + 1, j]
-            a4 = alpha_small[i + 1, j + 1]
-
-            # If any vertex is transparent, skip the quad (or use average)
-            # Using max > threshold ensures we keep edges, min > threshold might shrink it too much
-            if max(a1, a2, a3, a4) > alpha_threshold:
-                # Triangle 1
-                faces.append([idx, idx + 1, idx + mesh_res])
-                # Triangle 2
-                faces.append([idx + 1, idx + mesh_res + 1, idx + mesh_res])
-
-    faces_np = np.array(faces)
-
-    # Create UVs
-    u = np.linspace(0, 1, mesh_res)
-    v = np.linspace(1, 0, mesh_res)  # Flip V for texture
-    uv, vv = np.meshgrid(u, v)
-    uvs = np.stack([uv.flatten(), vv.flatten()], axis=1)
-
-    # Create Trimesh object
-    # Filter vertices that are not used?
-    # Trimesh can handle unused vertices, but for cleaner export we might want to process_()
-
-    mesh = trimesh.Trimesh(
-        vertices=vertices,
-        faces=faces_np,
-        visual=trimesh.visual.TextureVisuals(uv=uvs, image=image_small),
-        process=False,  # Don't auto-process to keep our UVs aligned
-    )
-
-    # Export to GLB
+    # 4. Export to GLB
+    # TripoSR returns a trimesh object
     glb_data = mesh.export(file_type="glb")
 
     return Response(content=glb_data, media_type="model/gltf-binary")

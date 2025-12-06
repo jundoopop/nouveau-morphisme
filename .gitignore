@@ -98,3 +98,6 @@ out/
 # Project specific
 output_image.png
 test_image.png
+
+# Embarassed
+.claude/
