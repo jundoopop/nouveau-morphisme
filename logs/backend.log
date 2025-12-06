@@ -1,0 +1,5 @@
+INFO:__main__:🚀 Running on device: mps
+Traceback (most recent call last):
+  File "/Users/joonhyeokkwon/term/backend/main.py", line 68, in <module>
+    from tsr.system import TSR
+ModuleNotFoundError: No module named 'tsr'

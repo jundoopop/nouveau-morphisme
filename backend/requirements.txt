@@ -12,5 +12,4 @@ transformers
 scipy
 accelerate
 einops
-git+https://github.com/VAST-AI-Research/TripoSR.git
 omegaconf
