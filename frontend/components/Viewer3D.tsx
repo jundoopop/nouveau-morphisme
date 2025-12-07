@@ -205,6 +205,7 @@ export default function Viewer3D({ imageUrl, meshUrl }: Viewer3DProps) {
             value={shaderMode}
             onChange={(e) => setShaderMode(e.target.value as ShaderMode)}
             className="bg-gray-800 text-white text-xs p-1 rounded border border-gray-700 focus:outline-none focus:border-blue-500"
+            suppressHydrationWarning
           >
             <option value="Default">Default</option>
             <option value="Toon">Toon</option>
@@ -220,6 +221,7 @@ export default function Viewer3D({ imageUrl, meshUrl }: Viewer3DProps) {
             value={lightingPreset}
             onChange={(e) => setLightingPreset(e.target.value as LightingPreset)}
             className="bg-gray-800 text-white text-xs p-1 rounded border border-gray-700 focus:outline-none focus:border-blue-500"
+            suppressHydrationWarning
           >
             <option value="city">City</option>
             <option value="sunset">Sunset</option>
