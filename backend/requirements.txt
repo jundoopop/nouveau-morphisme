@@ -13,3 +13,5 @@ scipy
 accelerate
 einops
 omegaconf
+opencv-python
+depth-anything-v2

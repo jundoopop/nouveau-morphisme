@@ -46,15 +46,20 @@ from rembg import remove
 from PIL import Image
 import io
 from fastapi.responses import Response
+from preprocessing import quick_remove_bg, get_mask_only
 
 
 @app.post("/remove-bg")
 async def remove_image_background(file: UploadFile = File(...)):
+    """
+    Fast background removal endpoint for preview/testing.
+    Uses enhanced rembg without depth for speed.
+    """
     contents = await file.read()
     input_image = Image.open(io.BytesIO(contents))
 
-    # Remove background
-    output_image = remove(input_image)
+    # Use fast quality preset (no GrabCut, optimized for speed)
+    output_image = quick_remove_bg(input_image, quality="fast")
 
     # Save to buffer
     img_byte_arr = io.BytesIO()
@@ -79,6 +84,19 @@ model = TSR.from_pretrained(
 )
 model.to(DEVICE)
 
+# Initialize Depth-Guided Masker (for hybrid background removal)
+from depth_masking import DepthGuidedMasker
+from preprocessing import enhanced_background_removal
+
+try:
+    depth_masker = DepthGuidedMasker(DEVICE, model_size='vitb')
+    logger.info("✅ Depth-guided masking enabled (hybrid mode)")
+    DEPTH_ENABLED = True
+except (ImportError, FileNotFoundError) as e:
+    logger.warning(f"⚠️  Depth-guided masking unavailable: {e}")
+    logger.warning("   Falling back to multi-stage preprocessing only")
+    DEPTH_ENABLED = False
+
 
 def get_model_config(device_type):
     """
@@ -94,47 +112,83 @@ def get_model_config(device_type):
 
 @app.post("/generate-mesh")
 async def generate_mesh(file: UploadFile = File(...)):
+    """
+    Generate 3D mesh from 2D image using hybrid background removal pipeline.
+
+    Pipeline:
+    1. Multi-stage preprocessing (rembg + morphological + GrabCut)
+    2. Optional: Depth-guided mask refinement (if depth model available)
+    3. Hybrid mask combination for best quality
+    4. TripoSR 3D mesh generation
+    """
     contents = await file.read()
     input_image = Image.open(io.BytesIO(contents))
 
-    # 1. Preprocess Image
-    # Remove background if not already transparent (TripoSR expects transparent bg)
-    # We can use rembg or TripoSR's utility.
-    # Let's use TripoSR's utility for consistency with their pipeline.
-    # Note: tsr.utils.remove_background might use rembg internally or similar.
+    logger.info("Starting hybrid background removal pipeline")
 
-    # Ensure RGBA
-    if input_image.mode != "RGBA":
-        input_image = input_image.convert("RGBA")
+    if DEPTH_ENABLED:
+        # ========== HYBRID APPROACH (Best Quality) ==========
+        logger.info("Using hybrid depth + segmentation pipeline")
 
-    # Remove background
-    # We already have rembg imported as remove, but let's use the one from tsr.utils if it's better suited
-    # actually tsr.utils.remove_background takes an image and returns an image with bg removed.
-    # But let's stick to our previous rembg if we want, OR use tsr.utils.
-    # Let's use tsr.utils.remove_background to be safe with what the model expects.
+        # Step 1: Get segmentation mask from multi-stage preprocessing
+        segmentation_mask = get_mask_only(input_image, use_grabcut=True)
 
-    # However, looking at TripoSR source, they often use rembg.
-    # Let's use the imported remove_background from tsr.utils
+        # Step 2: Combine with depth for superior results
+        hybrid_mask = depth_masker.hybrid_mask(
+            input_image,
+            segmentation_mask,
+            depth_percentile=35,  # Tune this: 30-40 typical, lower=closer objects only
+            strategy="depth_guided"  # Use depth to refine edges
+        )
 
-    # Preprocessing
-    image_processed = remove_background(input_image, rembg_session=None)
+        # Step 3: Apply combined mask
+        image_processed = depth_masker.apply_mask_to_image(input_image, hybrid_mask)
+
+        logger.info("Hybrid mask created successfully")
+
+    else:
+        # ========== FALLBACK: Multi-stage only (No depth) ==========
+        logger.info("Using multi-stage preprocessing (no depth)")
+
+        # Use balanced quality (GrabCut enabled)
+        image_processed = enhanced_background_removal(
+            input_image,
+            use_grabcut=True,  # Better quality, adds ~1s
+            remove_small_components=True,
+            kernel_size=5,
+            blur_size=5
+        )
+
+        logger.info("Multi-stage preprocessing complete")
+
+    # TripoSR preprocessing (resize foreground)
     image_processed = resize_foreground(image_processed, ratio=0.85)
 
-    # 2. Run TripoSR
-    with torch.no_grad():
-        scene_codes = model(image_processed, device=DEVICE)
+    # DEBUG: Log image info before TripoSR
+    logger.info(f"Image before TripoSR: mode={image_processed.mode}, size={image_processed.size}")
+
+    # 2. Run TripoSR with error handling
+    logger.info("Generating 3D mesh with TripoSR")
+    try:
+        with torch.no_grad():
+            scene_codes = model(image_processed, device=DEVICE)
+    except Exception as e:
+        logger.error(f"TripoSR failed: {type(e).__name__}: {e}")
+        logger.error(f"Image shape: {np.array(image_processed).shape}, dtype: {np.array(image_processed).dtype}")
+        raise
 
     # 3. Extract Mesh
     config = get_model_config(DEVICE)
-    logger.info(f"Generating mesh with config: {config}")
+    logger.info(f"Extracting mesh with config: {config}")
 
     meshes = model.extract_mesh(scene_codes, resolution=config["resolution"])
     mesh = meshes[0]
 
     # 4. Export to GLB
-    # TripoSR returns a trimesh object
+    logger.info("Exporting mesh to GLB format")
     glb_data = mesh.export(file_type="glb")
 
+    logger.info("✅ Mesh generation complete")
     return Response(content=glb_data, media_type="model/gltf-binary")
 
 
