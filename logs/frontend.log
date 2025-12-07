@@ -41,3 +41,30 @@
  GET / 200 in 60ms (compile: 12ms, render: 49ms)
  ✓ Compiled in 75ms
  ✓ Compiled in 26ms
+ GET / 200 in 797ms (compile: 395ms, render: 402ms)
+ ✓ Compiled in 243ms
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ✓ Compiled in 59ms
+ ⨯ ReferenceError: useRef is not defined
+    at IconGenerator (components/IconGenerator.tsx:18:23)
+  16 |
+  17 |     // Type checking for Viewer3DRef if needed, but we can just use any or import it
+> 18 |     const viewerRef = useRef<any>(null); // Ideally import Viewer3DRef from Viewer3D
+     |                       ^
+  19 |
+  20 |     const handleExport = () => {
+  21 |         if (viewerRef.current) { {
+  digest: '494675670'
+}
+ GET / 500 in 293ms (compile: 100ms, render: 193ms)
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ✓ Compiled in 43ms
+ GET / 200 in 128ms (compile: 33ms, render: 95ms)
+ GET / 200 in 55ms (compile: 15ms, render: 39ms)
+ GET / 200 in 44ms (compile: 9ms, render: 35ms)
+ GET / 200 in 350ms (compile: 26ms, render: 324ms)
+ ✓ Compiled in 205ms
+ ✓ Compiled in 360ms
+ GET / 200 in 420ms (compile: 168ms, render: 251ms)
+ ✓ Compiled in 124ms
+ ✓ Compiled in 489ms

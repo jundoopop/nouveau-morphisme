@@ -31,7 +31,8 @@ def enhanced_background_removal(
     use_grabcut: bool = True,
     remove_small_components: bool = True,
     kernel_size: int = 5,
-    blur_size: int = 5
+    blur_size: int = 5,
+    morph_iterations: int = 2
 ) -> Image.Image:
     """
     Multi-stage background removal pipeline for high-quality masks.
@@ -42,6 +43,7 @@ def enhanced_background_removal(
         remove_small_components: Remove disconnected noise, keep only largest object
         kernel_size: Size of morphological kernel (3-7, larger = more aggressive)
         blur_size: Gaussian blur size for edge smoothing (3-7, larger = smoother)
+        morph_iterations: Number of morphological operation iterations (1-3)
 
     Returns:
         RGBA PIL image with refined alpha mask
@@ -69,7 +71,7 @@ def enhanced_background_removal(
 
     # Stage 2: Morphological cleanup
     logger.debug("Stage 2: Morphological cleanup")
-    alpha = morphological_cleanup(alpha, kernel_size=kernel_size)
+    alpha = morphological_cleanup(alpha, kernel_size=kernel_size, iterations=morph_iterations)
 
     # Stage 3: Optional GrabCut refinement
     if use_grabcut:
@@ -94,13 +96,14 @@ def enhanced_background_removal(
     return Image.fromarray(result_rgba)
 
 
-def morphological_cleanup(mask: np.ndarray, kernel_size: int = 5) -> np.ndarray:
+def morphological_cleanup(mask: np.ndarray, kernel_size: int = 5, iterations: int = 2) -> np.ndarray:
     """
     Remove noise and fill small holes using morphological operations.
 
     Args:
         mask: Binary mask (0-255)
         kernel_size: Size of structuring element
+        iterations: Number of iterations for morphological operations (1-3)
 
     Returns:
         Cleaned mask
@@ -110,11 +113,11 @@ def morphological_cleanup(mask: np.ndarray, kernel_size: int = 5) -> np.ndarray:
 
     # Remove small noise: opening = erosion → dilation
     # This removes small white spots in the background
-    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=2)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=iterations)
 
     # Fill small holes: closing = dilation → erosion
     # This fills small black holes in the foreground
-    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=2)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=iterations)
 
     return mask
 
@@ -256,7 +259,10 @@ def smooth_edges(mask: np.ndarray, blur_size: int = 5) -> np.ndarray:
 
 def get_mask_only(
     image: Image.Image,
-    use_grabcut: bool = True
+    use_grabcut: bool = True,
+    kernel_size: int = 5,
+    blur_size: int = 5,
+    morph_iterations: int = 2
 ) -> np.ndarray:
     """
     Get only the alpha mask without applying it to the image.
@@ -265,11 +271,20 @@ def get_mask_only(
     Args:
         image: Input PIL image
         use_grabcut: Whether to use GrabCut refinement
+        kernel_size: Size of morphological kernel (3-7)
+        blur_size: Gaussian blur size for edge smoothing (3-7)
+        morph_iterations: Number of morphological operation iterations (1-3)
 
     Returns:
         Binary mask as numpy array (H, W) with values 0-255
     """
-    result = enhanced_background_removal(image, use_grabcut=use_grabcut)
+    result = enhanced_background_removal(
+        image,
+        use_grabcut=use_grabcut,
+        kernel_size=kernel_size,
+        blur_size=blur_size,
+        morph_iterations=morph_iterations
+    )
     return np.array(result.split()[-1])
 
 

@@ -1,18 +1,22 @@
-"use client";
-
-import { Canvas, useLoader } from "@react-three/fiber";
-import { OrbitControls, Environment } from "@react-three/drei";
-import { Suspense, useEffect, useState, useMemo } from "react";
+import { Canvas, useLoader, useThree } from "@react-three/fiber";
+import { OrbitControls, Environment, Center } from "@react-three/drei";
+import { Suspense, useEffect, useState, useMemo, forwardRef, useImperativeHandle } from "react";
 import * as THREE from "three";
 
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { isWebGPUSupported } from "../lib/webgpu/core/device";
 import Viewer3DWebGPU from "./Viewer3DWebGPU";
 
+export interface Viewer3DRef {
+  captureScreenshot: () => string | null;
+}
+
 interface Viewer3DProps {
   imageUrl?: string;
   meshUrl?: string;
   onReset?: () => void;
+  ambientIntensity?: number;
+  directIntensity?: number;
 }
 
 interface TextureMeshProps {
@@ -22,10 +26,12 @@ interface TextureMeshProps {
 function TextureMesh({ url }: TextureMeshProps) {
   const texture = useLoader(THREE.TextureLoader, url);
   return (
-    <mesh>
-      <planeGeometry args={[3, 3]} />
-      <meshStandardMaterial map={texture} transparent side={THREE.DoubleSide} />
-    </mesh>
+    <Center>
+      <mesh>
+        <planeGeometry args={[3, 3]} />
+        <meshStandardMaterial map={texture} transparent side={THREE.DoubleSide} />
+      </mesh>
+    </Center>
   );
 }
 
@@ -39,6 +45,8 @@ interface ModelMeshProps {
 
 function ModelMesh({ url, shaderMode }: ModelMeshProps) {
   const gltf = useLoader(GLTFLoader, url);
+  const controls = useThree((state) => state.controls as any);
+  const camera = useThree((state) => state.camera);
 
   const scene = useMemo(() => {
     const clonedScene = gltf.scene.clone(true);
@@ -97,8 +105,61 @@ function ModelMesh({ url, shaderMode }: ModelMeshProps) {
     return clonedScene;
   }, [gltf.scene, shaderMode]);
 
-  return <primitive object={scene} scale={[2, 2, 2]} />;
+  useEffect(() => {
+    if (!scene || !camera || !controls) return;
+
+    // Re-target orbit controls to the actual mesh bounds so rotations feel correct
+    const box = new THREE.Box3().setFromObject(scene);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+
+    if (!Number.isFinite(center.x) || !Number.isFinite(center.y) || !Number.isFinite(center.z)) {
+      return;
+    }
+
+    controls.target.copy(center);
+
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const fov = THREE.MathUtils.degToRad((camera as any).fov || 50);
+    const distance = maxDim > 0 ? (maxDim * 1.2) / Math.tan(fov / 2) : 5;
+    const offsetDir = new THREE.Vector3(1, 1, 1).normalize();
+
+    camera.position.copy(center.clone().add(offsetDir.multiplyScalar(distance)));
+    camera.near = Math.max(0.01, distance / 100);
+    camera.far = Math.max(camera.far, distance * 4);
+    camera.updateProjectionMatrix();
+    controls.update();
+  }, [scene, camera, controls, url]);
+
+  return (
+    <Center>
+      <primitive object={scene} scale={[2, 2, 2]} />
+    </Center>
+  );
 }
+
+interface ScreenShotHandlerProps {
+  exposedRef: React.Ref<Viewer3DRef>;
+}
+
+// Helper component to access GL context 
+const ScreenshotHandler = ({ exposedRef }: ScreenShotHandlerProps) => {
+  const { gl, scene, camera } = useThree();
+
+  useImperativeHandle(exposedRef, () => ({
+    captureScreenshot: () => {
+      gl.render(scene, camera);
+      return gl.domElement.toDataURL("image/png");
+    }
+  }));
+
+  return null;
+};
+
+// ... RotatableGroup and TorusKnotMesh omitted for brevity (they don't need changes except maybe Center) ...
+// Actually better to include them to be safe if I'm replacing the whole file structure or large chunks.
+// To avoid massive replacement, I will edit carefully. The RotatableGroup is fine. 
+// I'll replace the main component logic.
 
 interface RotatableGroupProps {
   children: React.ReactNode;
@@ -156,25 +217,32 @@ function TorusKnotMesh({ shaderMode }: TorusKnotMeshProps) {
   }, [shaderMode]);
 
   return (
-    <mesh>
-      <torusKnotGeometry args={[1, 0.3, 100, 16]} />
-      {material}
-    </mesh>
+    <Center>
+      <mesh>
+        <torusKnotGeometry args={[1, 0.3, 100, 16]} />
+        {material}
+      </mesh>
+    </Center>
   );
 }
 
-export default function Viewer3D({ imageUrl, meshUrl, onReset }: Viewer3DProps) {
+
+const Viewer3D = forwardRef<Viewer3DRef, Viewer3DProps>(({
+  imageUrl,
+  meshUrl,
+  onReset,
+  ambientIntensity = 0.5,
+  directIntensity = 1.0
+}, ref) => {
   const [shaderMode, setShaderMode] = useState<ShaderMode>("Default");
   const [lightingPreset, setLightingPreset] = useState<LightingPreset>("city");
   const [useWebGPU, setUseWebGPU] = useState(false);
   const [webGPUAvailable, setWebGPUAvailable] = useState(false);
 
-  // Check WebGPU availability
   useEffect(() => {
     setWebGPUAvailable(isWebGPUSupported());
   }, []);
 
-  // Render WebGPU version if enabled
   if (useWebGPU && webGPUAvailable) {
     return <Viewer3DWebGPU imageUrl={imageUrl} meshUrl={meshUrl} onSwitchToWebGL={() => setUseWebGPU(false)} onReset={onReset} />;
   }
@@ -183,9 +251,11 @@ export default function Viewer3D({ imageUrl, meshUrl, onReset }: Viewer3DProps) 
     <div className="w-full h-full min-h-[400px] bg-gray-900 rounded-lg overflow-hidden relative">
       <Canvas
         camera={{ position: [0, 0, 5], fov: 50 }}
+        gl={{ preserveDrawingBuffer: true }} // Creating screenshots requires this
       >
-        <ambientLight intensity={0.5} />
-        <directionalLight position={[10, 10, 5]} intensity={1} />
+        <ScreenshotHandler exposedRef={ref} />
+        <ambientLight intensity={ambientIntensity} />
+        <directionalLight position={[10, 10, 5]} intensity={directIntensity} />
         <Environment preset={lightingPreset} />
         <OrbitControls makeDefault />
 
@@ -210,7 +280,7 @@ export default function Viewer3D({ imageUrl, meshUrl, onReset }: Viewer3DProps) 
       </div>
 
       {/* Controls */}
-      <div className="absolute top-4 right-4 flex flex-col gap-2 bg-black/60 p-3 rounded-lg backdrop-blur-sm">
+      <div className="absolute top-4 right-4 flex flex-col gap-2 bg-black/60 p-3 rounded-lg backdrop-blur-sm z-50">
         {/* Initialize Button */}
         {(meshUrl || imageUrl) && onReset && (
           <div className="flex flex-col gap-1 pb-2 border-b border-gray-700">
@@ -254,7 +324,7 @@ export default function Viewer3D({ imageUrl, meshUrl, onReset }: Viewer3DProps) 
         </div>
 
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-gray-300 font-bold">Lighting</label>
+          <label className="text-xs text-gray-300 font-bold">Env Light</label>
           <select
             value={lightingPreset}
             onChange={(e) => setLightingPreset(e.target.value as LightingPreset)}
@@ -270,4 +340,7 @@ export default function Viewer3D({ imageUrl, meshUrl, onReset }: Viewer3DProps) 
       </div>
     </div>
   );
-}
+});
+
+Viewer3D.displayName = "Viewer3D";
+export default Viewer3D;

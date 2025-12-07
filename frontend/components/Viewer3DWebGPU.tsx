@@ -22,7 +22,78 @@ export default function Viewer3DWebGPU({ imageUrl, meshUrl, onSwitchToWebGL, onR
   const [error, setError] = useState<string | null>(null);
   const [shaderMode, setShaderMode] = useState<ShaderMode>("Default");
 
-  // ... (lines 25-231)
+  // Initialize WebGPU renderer
+  useEffect(() => {
+    let isCancelled = false;
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      setError("Canvas not available for WebGPU");
+      return;
+    }
+
+    // Keep canvas size in sync with display size
+    const resizeCanvas = () => {
+      if (!rendererRef.current) return;
+      const dpr = window.devicePixelRatio || 1;
+      const width = Math.max(1, Math.floor(canvas.clientWidth * dpr));
+      const height = Math.max(1, Math.floor(canvas.clientHeight * dpr));
+      if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width;
+        canvas.height = height;
+        rendererRef.current.resize(width, height);
+      }
+    };
+
+    const setup = async () => {
+      const initResult = await initWebGPU();
+      if (isCancelled) return;
+
+      if (!initResult) {
+        setError("WebGPU not supported or failed to initialize.");
+        return;
+      }
+
+      const context = configureContext(canvas, initResult.device, initResult.format);
+      if (!context) {
+        setError("Failed to configure WebGPU context.");
+        return;
+      }
+
+      const renderer = new WebGPURenderer({
+        device: initResult.device,
+        context,
+        format: initResult.format,
+        canvas,
+      });
+
+      rendererRef.current = renderer;
+
+      // Load default torus knot so something is visible immediately
+      const { vertices, indices } = generateTorusKnot();
+      renderer.loadGeometry(vertices, indices);
+
+      resizeCanvas();
+
+      const renderLoop = () => {
+        renderer.render();
+        animationFrameRef.current = requestAnimationFrame(renderLoop);
+      };
+
+      renderLoop();
+      setIsInitialized(true);
+    };
+
+    setup();
+    window.addEventListener("resize", resizeCanvas);
+
+    return () => {
+      isCancelled = true;
+      cancelAnimationFrame(animationFrameRef.current);
+      window.removeEventListener("resize", resizeCanvas);
+      rendererRef.current?.destroy();
+      rendererRef.current = null;
+    };
+  }, []);
 
   // Shader mode switching
   useEffect(() => {
