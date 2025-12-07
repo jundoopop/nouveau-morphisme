@@ -1,3 +1,14 @@
+from sam2_masking import SAM2Refiner
+from preprocessing import enhanced_background_removal
+from depth_masking import DepthGuidedMasker
+import numpy as np
+import trimesh
+from tsr.utils import remove_background, resize_foreground, save_video
+from tsr.system import TSR
+from preprocessing import quick_remove_bg, get_mask_only
+import io
+from PIL import Image
+from rembg import remove
 import torch
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
@@ -47,13 +58,6 @@ async def root():
     return {"message": "3D Icon Composer Backend is running", "device": str(DEVICE)}
 
 
-from rembg import remove
-from PIL import Image
-import io
-from fastapi.responses import Response
-from preprocessing import quick_remove_bg, get_mask_only
-
-
 @app.post("/remove-bg")
 async def remove_image_background(file: UploadFile = File(...)):
     """
@@ -75,10 +79,6 @@ async def remove_image_background(file: UploadFile = File(...)):
 
 
 # Load TripoSR Model
-from tsr.system import TSR
-from tsr.utils import remove_background, resize_foreground, save_video
-import trimesh
-import numpy as np
 
 # Initialize TripoSR Model
 # This will download the model weights automatically
@@ -90,9 +90,6 @@ model = TSR.from_pretrained(
 model.to(DEVICE)
 
 # Initialize Depth-Guided Masker (for hybrid background removal)
-from depth_masking import DepthGuidedMasker
-from preprocessing import enhanced_background_removal
-from sam2_masking import SAM2Refiner
 
 try:
     depth_masker = DepthGuidedMasker(DEVICE, model_size="vitb")
@@ -174,6 +171,12 @@ class MeshGenerationParams(BaseModel):
         default=True, description="Use SAM2 edge refinement if available."
     )
 
+    # Background removal processing mode
+    processing_mode: str = Field(
+        default="auto",
+        description="Background removal mode: 'auto', 'conservative', 'aggressive'"
+    )
+
 
 def get_model_config(device_type):
     """
@@ -250,7 +253,8 @@ def calculate_mesh_metrics(mesh):
             "is_watertight": bool(mesh.is_watertight),
             "bounds": mesh.bounds.tolist(),
             "euler_characteristic": (
-                int(mesh.euler_number) if hasattr(mesh, "euler_number") else None
+                int(mesh.euler_number) if hasattr(
+                    mesh, "euler_number") else None
             ),
         }
     except Exception as e:
@@ -323,10 +327,9 @@ async def generate_mesh(file: UploadFile = File(...), params: str = Form(default
     Generate 3D mesh from 2D image using hybrid background removal pipeline.
 
     Pipeline:
-    1. Multi-stage preprocessing (rembg + morphological + GrabCut)
-    2. Optional: Depth-guided mask refinement (if depth model available)
-    3. Hybrid mask combination for best quality
-    4. TripoSR 3D mesh generation
+    1. Check for existing transparency.
+    2. If none, run hybrid mask combination (rembg + depth).
+    3. TripoSR 3D mesh generation (using neutral gray background).
 
     Args:
         file: Uploaded image file
@@ -342,98 +345,137 @@ async def generate_mesh(file: UploadFile = File(...), params: str = Form(default
         mesh_params = MeshGenerationParams()  # Use defaults
 
     # Setup debug directory
-    debug_dir = setup_debug_dir(mesh_params.debug_mode or mesh_params.save_intermediate)
+    debug_dir = setup_debug_dir(
+        mesh_params.debug_mode or mesh_params.save_intermediate)
 
     contents = await file.read()
     input_image: Image.Image = Image.open(io.BytesIO(contents))
 
-    logger.info("Starting hybrid background removal pipeline")
+    # =========================================================
+    # DETECT TRANSPARENCY & BYPASS BACKGROUND REMOVAL IF NEEDED
+    # =========================================================
+    has_transparency = False
+    # Check if image has alpha channel and if it actually uses it
+    if input_image.mode in ('RGBA', 'LA'):
+        extrema = input_image.getextrema()
+        # extrema[-1] is the alpha channel range (min, max).
+        # If min < 255, there are transparent pixels.
+        if extrema[-1][0] < 255:
+            has_transparency = True
 
-    # Ensure input is RGBA for background removal but we might need RGB for models
-    if input_image.mode != "RGBA":
-        input_image = input_image.convert("RGBA")
+    image_processed = None
 
-    image_rgb = input_image.convert("RGB")  # For depth/TripoSR models
-
-    if DEPTH_ENABLED:
-        # ========== HYBRID + SAM2 APPROACH (Best Quality) ==========
-        logger.info("Using SAM2 + hybrid depth + segmentation pipeline")
-
-        # Step 1: Get initial segmentation mask from multi-stage preprocessing
+    if not has_transparency:
+        # --- EXECUTE NORMAL BACKGROUND REMOVAL PIPELINE ---
         logger.info(
-            f"Step 1/4: Multi-stage preprocessing (kernel={mesh_params.morph_kernel_size}, iter={mesh_params.morph_iterations})"
-        )
-        segmentation_mask = get_mask_only(
-            input_image,
-            use_grabcut=True,
-            kernel_size=mesh_params.morph_kernel_size,
-            blur_size=5,
-            morph_iterations=mesh_params.morph_iterations,
-        )
+            "Starting hybrid background removal pipeline (no transparency detected)")
 
-        # Save segmentation mask for debugging
-        save_debug_artifacts(debug_dir, "01_segmentation_mask", segmentation_mask)
+        # Ensure input is RGBA for background removal
+        if input_image.mode != "RGBA":
+            input_image = input_image.convert("RGBA")
 
-        # Step 2: Refine with SAM2 (if enabled)
-        if SAM2_ENABLED and mesh_params.use_sam2:
-            try:
-                logger.info("Step 2/4: SAM2 edge refinement")
-                segmentation_mask = sam2_refiner.refine_mask(
-                    input_image, segmentation_mask
-                )
-                save_debug_artifacts(
-                    debug_dir, "02_sam2_refined_mask", segmentation_mask
-                )
-                logger.info("SAM2 refinement complete")
-            except Exception as e:
-                logger.warning(
-                    f"SAM2 refinement failed: {e}. Continuing with unrefined mask."
-                )
-                # Pipeline continues gracefully with the unrefined mask
+        image_rgb = input_image.convert("RGB")  # For depth/TripoSR models
+
+        if DEPTH_ENABLED:
+            # ========== HYBRID + SAM2 APPROACH (Best Quality) ==========
+            logger.info("Using SAM2 + hybrid depth + segmentation pipeline")
+
+            # Step 1: Enhanced background removal with processing modes
+            logger.info(
+                f"Step 1/4: Enhanced background removal (mode={mesh_params.processing_mode}, kernel={mesh_params.morph_kernel_size}, iter={mesh_params.morph_iterations})"
+            )
+            image_processed_stage1 = enhanced_background_removal(
+                input_image,
+                processing_mode=mesh_params.processing_mode,
+                use_grabcut=True,
+                kernel_size=mesh_params.morph_kernel_size,
+                blur_size=5,
+                morph_iterations=mesh_params.morph_iterations,
+            )
+            segmentation_mask = np.array(image_processed_stage1.split()[-1])
+
+            # Save segmentation mask for debugging
+            save_debug_artifacts(
+                debug_dir, "01_segmentation_mask", segmentation_mask)
+
+            # Step 2: Refine with SAM2 (if enabled)
+            if SAM2_ENABLED and mesh_params.use_sam2:
+                try:
+                    logger.info("Step 2/4: SAM2 edge refinement")
+                    segmentation_mask = sam2_refiner.refine_mask(
+                        input_image, segmentation_mask
+                    )
+                    save_debug_artifacts(
+                        debug_dir, "02_sam2_refined_mask", segmentation_mask
+                    )
+                    logger.info("SAM2 refinement complete")
+                except Exception as e:
+                    logger.warning(
+                        f"SAM2 refinement failed: {e}. Continuing with unrefined mask."
+                    )
+                    # Pipeline continues gracefully with the unrefined mask
+            else:
+                logger.info(
+                    "Step 2/4: Skipped (SAM2 not available or disabled)")
+
+            # Step 3: Combine with depth for superior results
+            # Override depth percentile for aggressive mode (more restrictive)
+            depth_percentile_actual = mesh_params.depth_percentile
+            if mesh_params.processing_mode == "aggressive":
+                depth_percentile_actual = min(depth_percentile_actual, 30)
+                logger.info(f"Aggressive mode: using depth_percentile={depth_percentile_actual}")
+
+            logger.info(
+                f"Step 3/4: Depth-guided hybrid masking (percentile={depth_percentile_actual})"
+            )
+            hybrid_mask = depth_masker.hybrid_mask(
+                input_image,
+                segmentation_mask,
+                depth_percentile=depth_percentile_actual,
+                strategy="depth_guided",  # Use depth to refine edges
+            )
+            save_debug_artifacts(debug_dir, "03_hybrid_mask", hybrid_mask)
+
+            # Step 4: Apply combined mask
+            logger.info("Step 4/4: Applying hybrid mask")
+            image_processed = depth_masker.apply_mask_to_image(
+                input_image, hybrid_mask)
+            save_debug_artifacts(debug_dir, "04_masked_image", image_processed)
+
+            logger.info(
+                "Hybrid mask with SAM2 refinement created successfully")
+
         else:
-            logger.info("Step 2/4: Skipped (SAM2 not available or disabled)")
+            # ========== FALLBACK: Multi-stage only (No depth) ==========
+            logger.info("Using multi-stage preprocessing (no depth)")
 
-        # Step 3: Combine with depth for superior results
-        logger.info(
-            f"Step 3/4: Depth-guided hybrid masking (percentile={mesh_params.depth_percentile})"
-        )
-        hybrid_mask = depth_masker.hybrid_mask(
-            input_image,
-            segmentation_mask,
-            depth_percentile=mesh_params.depth_percentile,
-            strategy="depth_guided",  # Use depth to refine edges
-        )
-        save_debug_artifacts(debug_dir, "03_hybrid_mask", hybrid_mask)
+            # Use balanced quality (GrabCut enabled)
+            image_processed = enhanced_background_removal(
+                input_image,
+                use_grabcut=True,  # Better quality, adds ~1s
+                remove_small_components=True,
+                kernel_size=mesh_params.morph_kernel_size,
+                blur_size=5,
+                morph_iterations=mesh_params.morph_iterations,
+            )
 
-        # Step 4: Apply combined mask
-        logger.info("Step 4/4: Applying hybrid mask")
-        image_processed = depth_masker.apply_mask_to_image(input_image, hybrid_mask)
-        save_debug_artifacts(debug_dir, "04_masked_image", image_processed)
-
-        logger.info("Hybrid mask with SAM2 refinement created successfully")
-
+            logger.info("Multi-stage preprocessing complete")
     else:
-        # ========== FALLBACK: Multi-stage only (No depth) ==========
-        logger.info("Using multi-stage preprocessing (no depth)")
-
-        # Use balanced quality (GrabCut enabled)
-        image_processed = enhanced_background_removal(
-            input_image,
-            use_grabcut=True,  # Better quality, adds ~1s
-            remove_small_components=True,
-            kernel_size=mesh_params.morph_kernel_size,
-            blur_size=5,
-            morph_iterations=mesh_params.morph_iterations,
-        )
-
-        logger.info("Multi-stage preprocessing complete")
+        # --- BYPASS BACKGROUND REMOVAL ---
+        logger.info(
+            "✅ Image already has transparency. Skipping background removal.")
+        if input_image.mode != "RGBA":
+            input_image = input_image.convert("RGBA")
+        image_processed = input_image
 
     # TripoSR preprocessing (resize foreground)
+    # This correctly uses the alpha channel to center the object
     logger.info(f"Resizing foreground (ratio={mesh_params.foreground_ratio})")
     image_processed = resize_foreground(
         image_processed, ratio=mesh_params.foreground_ratio
     )
-    save_debug_artifacts(debug_dir, "05_preprocessed_for_triposr", image_processed)
+    save_debug_artifacts(
+        debug_dir, "05_preprocessed_for_triposr", image_processed)
 
     # DEBUG: Log image info before TripoSR
     logger.info(
@@ -445,9 +487,11 @@ async def generate_mesh(file: UploadFile = File(...), params: str = Form(default
     try:
         with torch.no_grad():
             # Ensure RGB for TripoSR
+            # CRITICAL FIX: Use neutral GRAY (127,127,127) instead of WHITE
+            # White is often interpreted as solid object by the model.
             if image_processed.mode == "RGBA":
-                # Create RGB background (white) to handle transparency
-                bg = Image.new("RGB", image_processed.size, (255, 255, 255))
+                bg_color = (127, 127, 127)  # Neutral gray
+                bg = Image.new("RGB", image_processed.size, bg_color)
                 bg.paste(image_processed, mask=image_processed.split()[3])
                 model_input = bg
             else:

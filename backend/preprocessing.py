@@ -26,8 +26,145 @@ logger = logging.getLogger(__name__)
 REMBG_SESSION = new_session("isnet-general-use")  # Better edge quality than default u2net
 
 
+def detect_transparency_quality(image: Image.Image) -> dict:
+    """
+    Analyze if image already has good transparency.
+
+    Detection criteria:
+    1. Image has alpha channel (RGBA)
+    2. Alpha distribution is binary (mostly 0 or 255)
+    3. Foreground is well-defined (contiguous non-zero alpha)
+    4. No semi-transparent noise
+
+    Args:
+        image: Input PIL image
+
+    Returns:
+        Dictionary with quality metrics:
+        - has_alpha: bool - Image has alpha channel
+        - is_binary: bool - Alpha is mostly 0 or 255
+        - binary_ratio: float - Fraction of pixels that are 0 or 255
+        - foreground_ratio: float - Fraction of pixels with alpha > 50
+        - largest_component_ratio: float - Size of largest component vs total foreground
+        - quality_score: float - Overall quality (0-1, higher = better)
+        - needs_processing: bool - Whether processing is needed
+    """
+    # Check if image has alpha
+    if image.mode != 'RGBA':
+        return {
+            "has_alpha": False,
+            "is_binary": False,
+            "binary_ratio": 0.0,
+            "foreground_ratio": 0.0,
+            "largest_component_ratio": 0.0,
+            "quality_score": 0.0,
+            "needs_processing": True
+        }
+
+    # Extract alpha channel
+    alpha = np.array(image.split()[-1])
+    total_pixels = alpha.size
+
+    # Metric 1: Binary distribution
+    # Count pixels near 0 (background) and near 255 (foreground)
+    near_zero = (alpha <= 10).sum()
+    near_full = (alpha >= 245).sum()
+    binary_pixels = near_zero + near_full
+    binary_ratio = binary_pixels / total_pixels
+
+    # Metric 2: Foreground ratio
+    foreground_pixels = (alpha > 50).sum()
+    foreground_ratio = foreground_pixels / total_pixels
+
+    # Metric 3: Foreground contiguity (check if foreground is one connected component)
+    alpha_binary = (alpha > 128).astype(np.uint8) * 255
+    num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(
+        alpha_binary, connectivity=8
+    )
+
+    if num_labels <= 1:
+        # No foreground detected
+        largest_component_ratio = 0.0
+    else:
+        # Get sizes of all components (excluding background at index 0)
+        sizes = stats[1:, cv2.CC_STAT_AREA]
+        largest_size = sizes.max() if len(sizes) > 0 else 0
+        largest_component_ratio = largest_size / max(foreground_pixels, 1)
+
+    # Calculate quality score (weighted combination)
+    is_binary = binary_ratio > 0.85
+    is_contiguous = largest_component_ratio > 0.90
+    has_reasonable_foreground = 0.05 < foreground_ratio < 0.95
+
+    quality_score = (
+        binary_ratio * 0.4 +              # 40% weight on binary alpha
+        largest_component_ratio * 0.3 +   # 30% weight on contiguity
+        (1.0 if has_reasonable_foreground else 0.5) * 0.3  # 30% weight on foreground size
+    )
+
+    needs_processing = not (is_binary and is_contiguous and has_reasonable_foreground)
+
+    result = {
+        "has_alpha": True,
+        "is_binary": is_binary,
+        "binary_ratio": float(binary_ratio),
+        "foreground_ratio": float(foreground_ratio),
+        "largest_component_ratio": float(largest_component_ratio),
+        "quality_score": float(quality_score),
+        "needs_processing": needs_processing
+    }
+
+    logger.info(
+        f"Transparency quality: score={quality_score:.2f}, "
+        f"binary={binary_ratio:.2f}, contiguous={largest_component_ratio:.2f}, "
+        f"needs_processing={needs_processing}"
+    )
+
+    return result
+
+
+def quantize_alpha(
+    mask: np.ndarray,
+    threshold: int = 200,
+    fill_holes: bool = True
+) -> np.ndarray:
+    """
+    Convert fuzzy alpha to binary (0 or 255).
+
+    This prevents semi-transparent pixels from being interpreted as
+    geometry by TripoSR's marching cubes algorithm, which is the root
+    cause of mesh flattening.
+
+    Args:
+        mask: Alpha channel (H, W) with values 0-255
+        threshold: alpha > threshold → 255, else → 0
+        fill_holes: Apply morphological closing before quantization
+
+    Returns:
+        Binary mask with only 0 or 255 values
+    """
+    # Fill small holes first to avoid creating gaps during quantization
+    if fill_holes:
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=1)
+
+    # Quantize to binary
+    quantized = np.where(mask > threshold, 255, 0).astype(np.uint8)
+
+    # Log statistics for debugging
+    fuzzy_pixels = ((mask > 0) & (mask < 255)).sum()
+    if fuzzy_pixels > 0:
+        logger.debug(
+            f"Alpha quantization: removed {fuzzy_pixels} fuzzy pixels "
+            f"({fuzzy_pixels / mask.size * 100:.1f}%)"
+        )
+
+    return quantized
+
+
 def enhanced_background_removal(
     image: Image.Image,
+    processing_mode: str = "auto",
     use_grabcut: bool = True,
     remove_small_components: bool = True,
     kernel_size: int = 5,
@@ -35,20 +172,68 @@ def enhanced_background_removal(
     morph_iterations: int = 2
 ) -> Image.Image:
     """
-    Multi-stage background removal pipeline for high-quality masks.
+    Multi-stage background removal pipeline with mode selection.
+
+    Processing Modes:
+    - "auto": Detect transparency quality and choose best mode
+    - "conservative": Preserve fine details (current behavior with fuzzy edges)
+    - "aggressive": Binary alpha quantization, removes stubborn backgrounds
 
     Args:
         image: Input PIL image
-        use_grabcut: Whether to use GrabCut refinement (adds ~1s but improves quality)
+        processing_mode: Processing strategy ("auto", "conservative", "aggressive")
+        use_grabcut: Whether to use GrabCut refinement (ignored in aggressive mode)
         remove_small_components: Remove disconnected noise, keep only largest object
         kernel_size: Size of morphological kernel (3-7, larger = more aggressive)
-        blur_size: Gaussian blur size for edge smoothing (3-7, larger = smoother)
+        blur_size: Gaussian blur size for edge smoothing (ignored in aggressive mode)
         morph_iterations: Number of morphological operation iterations (1-3)
 
     Returns:
         RGBA PIL image with refined alpha mask
     """
-    logger.info("Starting multi-stage background removal")
+    logger.info(f"Starting background removal with mode='{processing_mode}'")
+
+    # ========== AUTO MODE: DETECT AND CHOOSE ==========
+    if processing_mode == "auto":
+        quality = detect_transparency_quality(image)
+
+        if not quality["needs_processing"]:
+            logger.info(
+                f"✅ Pre-existing transparency detected "
+                f"(quality={quality['quality_score']:.2f}). Skipping processing."
+            )
+            return image.convert('RGBA')
+
+        # Choose mode based on quality
+        if quality["quality_score"] < 0.5:
+            processing_mode = "aggressive"
+            logger.info(f"Auto-selected aggressive mode (quality={quality['quality_score']:.2f})")
+        else:
+            processing_mode = "conservative"
+            logger.info(f"Auto-selected conservative mode (quality={quality['quality_score']:.2f})")
+
+    # ========== MODE-SPECIFIC PARAMETERS ==========
+    if processing_mode == "aggressive":
+        alpha_matting_foreground_threshold = 250
+        alpha_matting_background_threshold = 5
+        morph_kernel_size = 3
+        morph_iterations_actual = 4
+        use_grabcut_actual = False
+        quantize_final = True
+        blur_size_actual = 0
+    elif processing_mode == "conservative":
+        alpha_matting_foreground_threshold = 240
+        alpha_matting_background_threshold = 10
+        morph_kernel_size = kernel_size
+        morph_iterations_actual = morph_iterations
+        use_grabcut_actual = use_grabcut
+        quantize_final = False
+        blur_size_actual = blur_size
+    else:
+        raise ValueError(
+            f"Unknown processing_mode: '{processing_mode}'. "
+            f"Choose: 'auto', 'conservative', or 'aggressive'"
+        )
 
     # Stage 1: Initial mask from rembg with alpha matting
     logger.debug("Stage 1: Initial rembg segmentation")
@@ -56,8 +241,8 @@ def enhanced_background_removal(
         image,
         session=REMBG_SESSION,
         alpha_matting=True,                      # Better edge quality
-        alpha_matting_foreground_threshold=240,  # Pixels >240 = definite foreground
-        alpha_matting_background_threshold=10,   # Pixels <10 = definite background
+        alpha_matting_foreground_threshold=alpha_matting_foreground_threshold,
+        alpha_matting_background_threshold=alpha_matting_background_threshold,
         alpha_matting_erode_size=10              # Edge refinement size
     )
 
@@ -70,23 +255,29 @@ def enhanced_background_removal(
     logger.debug(f"Initial alpha shape: {alpha.shape}, dtype: {alpha.dtype}")
 
     # Stage 2: Morphological cleanup
-    logger.debug("Stage 2: Morphological cleanup")
-    alpha = morphological_cleanup(alpha, kernel_size=kernel_size, iterations=morph_iterations)
+    logger.debug(f"Stage 2: Morphological cleanup (kernel={morph_kernel_size}, iter={morph_iterations_actual})")
+    alpha = morphological_cleanup(alpha, kernel_size=morph_kernel_size, iterations=morph_iterations_actual)
 
     # Stage 3: Optional GrabCut refinement
-    if use_grabcut:
+    if use_grabcut_actual:
         logger.debug("Stage 3: GrabCut refinement")
         image_rgb = np.array(image.convert('RGB'))
         alpha = grabcut_refinement(image_rgb, alpha)
+    else:
+        logger.debug("Stage 3: Skipped GrabCut (aggressive mode)")
 
     # Stage 4: Remove small disconnected components
     if remove_small_components:
         logger.debug("Stage 4: Removing small components")
         alpha = keep_largest_component(alpha)
 
-    # Stage 5: Edge smoothing
-    logger.debug("Stage 5: Edge smoothing")
-    alpha = smooth_edges(alpha, blur_size=blur_size)
+    # Stage 5: Edge processing (mode-dependent)
+    if quantize_final:
+        logger.debug("Stage 5: Alpha quantization (binary)")
+        alpha = quantize_alpha(alpha, threshold=200, fill_holes=True)
+    else:
+        logger.debug("Stage 5: Edge smoothing (fuzzy)")
+        alpha = smooth_edges(alpha, blur_size=blur_size_actual)
 
     # Stage 6: Reconstruct RGBA image
     result_rgba = np.array(image.convert('RGBA'))

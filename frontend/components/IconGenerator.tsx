@@ -20,7 +20,8 @@ export default function IconGenerator() {
         morph_iterations: 1,
         mesh_resolution: 256,
         debug_mode: false,
-        use_sam2: true
+        use_sam2: true,
+        processing_mode: "auto"
     });
 
     const [lightingParams, setLightingParams] = useState({
@@ -79,7 +80,7 @@ export default function IconGenerator() {
                     setProcessedBlob(blob);
 
                     // Trigger Mesh Generation using original file (kept intact for depth changes)
-                    await generateMesh(selectedFile, meshParams);
+                    await generateMesh(selectedFile);
 
                 } else {
                     console.error("Failed to remove background");
@@ -124,6 +125,15 @@ export default function IconGenerator() {
         setMeshParams(newParams);
         if (file) {
             // Re-generate mesh using original upload so depth tracking is recalculated
+            await generateMesh(file, newParams);
+        }
+    };
+
+    const handleProcessingModeChange = async (newMode: string) => {
+        const newParams = { ...meshParams, processing_mode: newMode };
+        setMeshParams(newParams);
+        if (file) {
+            // Re-generate mesh with new processing mode
             await generateMesh(file, newParams);
         }
     };
@@ -192,12 +202,71 @@ export default function IconGenerator() {
                     </div>
                 </div>
 
+                {/* Background Removal Mode */}
+                <div className="flex flex-col gap-2 mt-2">
+                    <label className="text-sm font-medium text-gray-400">3. Background Removal</label>
+                    <div className="p-3 bg-gray-800/50 rounded-lg space-y-3">
+                        <div className="flex flex-col gap-2">
+                            <label className="flex items-center gap-2 cursor-pointer hover:bg-gray-700/30 p-2 rounded transition-colors">
+                                <input
+                                    type="radio"
+                                    name="processing_mode"
+                                    value="auto"
+                                    checked={meshParams.processing_mode === "auto"}
+                                    onChange={(e) => handleProcessingModeChange(e.target.value)}
+                                    className="accent-blue-500"
+                                />
+                                <div className="flex-1">
+                                    <div className="text-xs font-semibold text-blue-300">Auto (Recommended)</div>
+                                    <div className="text-xs text-gray-400">Detects transparency quality and chooses best mode</div>
+                                </div>
+                            </label>
+
+                            <label className="flex items-center gap-2 cursor-pointer hover:bg-gray-700/30 p-2 rounded transition-colors">
+                                <input
+                                    type="radio"
+                                    name="processing_mode"
+                                    value="conservative"
+                                    checked={meshParams.processing_mode === "conservative"}
+                                    onChange={(e) => handleProcessingModeChange(e.target.value)}
+                                    className="accent-green-500"
+                                />
+                                <div className="flex-1">
+                                    <div className="text-xs font-semibold text-green-300">Conservative</div>
+                                    <div className="text-xs text-gray-400">Preserves fine details, fuzzy edges OK</div>
+                                </div>
+                            </label>
+
+                            <label className="flex items-center gap-2 cursor-pointer hover:bg-gray-700/30 p-2 rounded transition-colors">
+                                <input
+                                    type="radio"
+                                    name="processing_mode"
+                                    value="aggressive"
+                                    checked={meshParams.processing_mode === "aggressive"}
+                                    onChange={(e) => handleProcessingModeChange(e.target.value)}
+                                    className="accent-orange-500"
+                                />
+                                <div className="flex-1">
+                                    <div className="text-xs font-semibold text-orange-300">Aggressive</div>
+                                    <div className="text-xs text-gray-400">Removes all background, may erode surfaces</div>
+                                </div>
+                            </label>
+                        </div>
+
+                        {meshParams.processing_mode === "aggressive" && (
+                            <div className="bg-orange-900/20 border border-orange-500/30 rounded p-2 text-xs text-orange-200">
+                                <span className="font-semibold">⚠ Warning:</span> Aggressive mode uses binary alpha. Fine details may be lost.
+                            </div>
+                        )}
+                    </div>
+                </div>
+
                 {/* Mesh Advanced Settings (Existing logic - implied but not fully shown in original, adding placeholder wrapper) */}
                 <div className="flex flex-col gap-2 mt-2">
-                    <label className="text-sm font-medium text-gray-400">3. Advanced Mesh</label>
+                    <label className="text-sm font-medium text-gray-400">4. Advanced Mesh</label>
                     <div className="p-3 bg-gray-800/50 rounded text-xs text-gray-400">
-                        {/* Ideally we would map meshParams here, but let's just keep the placeholder for now or minimal controls 
-                            since user asked about lighting specifically. 
+                        {/* Ideally we would map meshParams here, but let's just keep the placeholder for now or minimal controls
+                            since user asked about lighting specifically.
                         */}
                         <div className="flex justify-between mb-1">
                             <span>Depth Percentile</span>

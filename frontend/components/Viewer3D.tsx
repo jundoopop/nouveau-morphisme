@@ -7,6 +7,9 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { isWebGPUSupported } from "../lib/webgpu/core/device";
 import Viewer3DWebGPU from "./Viewer3DWebGPU";
 
+// Local asset for Stanford bunny (glTF binary)
+const STANFORD_BUNNY_GLTF = "/models/StanfordBunny.glb";
+
 export interface Viewer3DRef {
   captureScreenshot: () => string | null;
 }
@@ -37,6 +40,7 @@ function TextureMesh({ url }: TextureMeshProps) {
 
 type ShaderMode = "Default" | "Toon" | "Shiny" | "Wireframe" | "Normal";
 type LightingPreset = "city" | "sunset" | "studio" | "night";
+type DefaultShape = "torus" | "bunny";
 
 interface ModelMeshProps {
   url: string;
@@ -238,6 +242,9 @@ const Viewer3D = forwardRef<Viewer3DRef, Viewer3DProps>(({
   const [lightingPreset, setLightingPreset] = useState<LightingPreset>("city");
   const [useWebGPU, setUseWebGPU] = useState(false);
   const [webGPUAvailable, setWebGPUAvailable] = useState(false);
+  const [defaultShape, setDefaultShape] = useState<DefaultShape>("torus");
+  const [autoRotate, setAutoRotate] = useState(true);  // Auto-rotate ON by default
+  const [autoRotateSpeed, setAutoRotateSpeed] = useState(2.0);  // Default speed
 
   useEffect(() => {
     setWebGPUAvailable(isWebGPUSupported());
@@ -257,7 +264,13 @@ const Viewer3D = forwardRef<Viewer3DRef, Viewer3DProps>(({
         <ambientLight intensity={ambientIntensity} />
         <directionalLight position={[10, 10, 5]} intensity={directIntensity} />
         <Environment preset={lightingPreset} />
-        <OrbitControls makeDefault />
+        <OrbitControls
+          makeDefault
+          autoRotate={autoRotate}
+          autoRotateSpeed={autoRotateSpeed}
+          enableDamping={true}
+          dampingFactor={0.05}
+        />
 
         <Suspense fallback={null}>
           <RotatableGroup>
@@ -266,7 +279,11 @@ const Viewer3D = forwardRef<Viewer3DRef, Viewer3DProps>(({
             ) : imageUrl ? (
               <TextureMesh url={imageUrl} />
             ) : (
-              <TorusKnotMesh shaderMode={shaderMode} />
+              defaultShape === "torus" ? (
+                <TorusKnotMesh shaderMode={shaderMode} />
+              ) : (
+                <ModelMesh url={STANFORD_BUNNY_GLTF} shaderMode={shaderMode} />
+              )
             )}
           </RotatableGroup>
         </Suspense>
@@ -294,6 +311,42 @@ const Viewer3D = forwardRef<Viewer3DRef, Viewer3DProps>(({
           </div>
         )}
 
+        {/* Auto-Rotation Controls */}
+        <div className="flex flex-col gap-1 pb-2 border-b border-gray-700">
+          <label className="text-xs text-gray-300 font-bold">Auto-Rotate</label>
+          <button
+            onClick={() => setAutoRotate(!autoRotate)}
+            className={`${autoRotate
+                ? 'bg-purple-600 hover:bg-purple-500'
+                : 'bg-gray-600 hover:bg-gray-500'
+              } text-white text-xs py-1 px-2 rounded transition-colors`}
+          >
+            {autoRotate ? 'ON' : 'OFF'}
+          </button>
+
+          {autoRotate && (
+            <div className="flex flex-col gap-1 mt-2">
+              <div className="flex justify-between text-xs text-gray-400">
+                <span>Speed</span>
+                <span>{autoRotateSpeed.toFixed(1)}</span>
+              </div>
+              <input
+                type="range"
+                min="0.5"
+                max="5.0"
+                step="0.1"
+                value={autoRotateSpeed}
+                onChange={(e) => setAutoRotateSpeed(parseFloat(e.target.value))}
+                className="w-full accent-purple-500 h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+              />
+              <div className="flex justify-between text-xs text-gray-500">
+                <span>Slow</span>
+                <span>Fast</span>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* WebGPU Toggle */}
         {webGPUAvailable && (
           <div className="flex flex-col gap-1 pb-2 border-b border-gray-700">
@@ -320,6 +373,19 @@ const Viewer3D = forwardRef<Viewer3DRef, Viewer3DProps>(({
             <option value="Shiny">Shiny</option>
             <option value="Wireframe">Wireframe</option>
             <option value="Normal">Normal</option>
+          </select>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-gray-300 font-bold">Default Shape</label>
+          <select
+            value={defaultShape}
+            onChange={(e) => setDefaultShape(e.target.value as DefaultShape)}
+            className="bg-gray-800 text-white text-xs p-1 rounded border border-gray-700 focus:outline-none focus:border-blue-500"
+            suppressHydrationWarning
+          >
+            <option value="torus">Torus Knot</option>
+            <option value="bunny">Stanford Bunny</option>
           </select>
         </div>
 
