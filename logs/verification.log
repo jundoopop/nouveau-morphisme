@@ -1,0 +1,114 @@
+INFO:__main__:🚀 Running on device: mps
+WARNING:dinov2:xFormers not available
+WARNING:dinov2:xFormers not available
+INFO:depth_masking:Initializing Depth-Anything V2 (vitb)...
+INFO:dinov2:using MLP layer as FFN
+INFO:depth_masking:Depth-Anything V2 (vitb) loaded successfully on mps
+INFO:__main__:✅ Depth-guided masking enabled (hybrid mode)
+INFO:sam2_masking:Initializing SAM2 (tiny)...
+WARNING:sam2_masking:SAM2 doesn't support MPS yet, using CPU for SAM2 (tiny model is still fast on CPU)
+INFO:root:Loaded checkpoint sucessfully
+INFO:sam2_masking:SAM2 (tiny) loaded successfully on cpu
+INFO:__main__:✅ SAM2 edge refinement enabled
+INFO:     Will watch for changes in these directories: ['/Users/joonhyeokkwon/term/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [8029] using StatReload
+INFO:__mp_main__:🚀 Running on device: mps
+WARNING:dinov2:xFormers not available
+WARNING:dinov2:xFormers not available
+INFO:depth_masking:Initializing Depth-Anything V2 (vitb)...
+INFO:dinov2:using MLP layer as FFN
+INFO:depth_masking:Depth-Anything V2 (vitb) loaded successfully on mps
+INFO:__mp_main__:✅ Depth-guided masking enabled (hybrid mode)
+INFO:sam2_masking:Initializing SAM2 (tiny)...
+WARNING:sam2_masking:SAM2 doesn't support MPS yet, using CPU for SAM2 (tiny model is still fast on CPU)
+INFO:root:Loaded checkpoint sucessfully
+INFO:sam2_masking:SAM2 (tiny) loaded successfully on cpu
+INFO:__mp_main__:✅ SAM2 edge refinement enabled
+INFO:main:🚀 Running on device: mps
+INFO:depth_masking:Initializing Depth-Anything V2 (vitb)...
+INFO:dinov2:using MLP layer as FFN
+INFO:depth_masking:Depth-Anything V2 (vitb) loaded successfully on mps
+INFO:main:✅ Depth-guided masking enabled (hybrid mode)
+INFO:sam2_masking:Initializing SAM2 (tiny)...
+WARNING:sam2_masking:SAM2 doesn't support MPS yet, using CPU for SAM2 (tiny model is still fast on CPU)
+INFO:root:Loaded checkpoint sucessfully
+INFO:sam2_masking:SAM2 (tiny) loaded successfully on cpu
+INFO:main:✅ SAM2 edge refinement enabled
+INFO:     Started server process [8136]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:main:Starting hybrid background removal pipeline
+INFO:main:Using SAM2 + hybrid depth + segmentation pipeline
+INFO:main:Step 1/4: Multi-stage preprocessing
+INFO:preprocessing:Starting multi-stage background removal
+INFO:preprocessing:Multi-stage background removal complete
+INFO:main:Step 2/4: SAM2 edge refinement
+INFO:root:For numpy array image, we assume (HxWxC) format
+INFO:root:Computing image embeddings for the provided image...
+INFO:root:Image embeddings computed.
+INFO:main:SAM2 refinement complete
+INFO:main:Step 3/4: Depth-guided hybrid masking
+INFO:main:Step 4/4: Applying hybrid mask
+INFO:main:Hybrid mask with SAM2 refinement created successfully
+INFO:main:Image before TripoSR: mode=RGBA, size=(249, 249)
+INFO:main:Generating 3D mesh with TripoSR
+INFO:main:Extracting mesh with config: {'resolution': 256}
+INFO:     127.0.0.1:55920 - "POST /generate-mesh HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/opt/anaconda3/lib/python3.12/site-packages/uvicorn/protocols/http/h11_impl.py", line 403, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/lib/python3.12/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/lib/python3.12/site-packages/fastapi/applications.py", line 1134, in __call__
+    await super().__call__(scope, receive, send)
+  File "/opt/anaconda3/lib/python3.12/site-packages/starlette/applications.py", line 107, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/opt/anaconda3/lib/python3.12/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/opt/anaconda3/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/opt/anaconda3/lib/python3.12/site-packages/starlette/middleware/cors.py", line 85, in __call__
+    await self.app(scope, receive, send)
+  File "/opt/anaconda3/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/opt/anaconda3/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/opt/anaconda3/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/opt/anaconda3/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/opt/anaconda3/lib/python3.12/site-packages/starlette/routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/opt/anaconda3/lib/python3.12/site-packages/starlette/routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "/opt/anaconda3/lib/python3.12/site-packages/starlette/routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "/opt/anaconda3/lib/python3.12/site-packages/fastapi/routing.py", line 125, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/opt/anaconda3/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/opt/anaconda3/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/opt/anaconda3/lib/python3.12/site-packages/fastapi/routing.py", line 111, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/lib/python3.12/site-packages/fastapi/routing.py", line 391, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/lib/python3.12/site-packages/fastapi/routing.py", line 290, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/joonhyeokkwon/term/backend/main.py", line 226, in generate_mesh
+    meshes = model.extract_mesh(scene_codes, resolution=config["resolution"])
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: TSR.extract_mesh() missing 1 required positional argument: 'has_vertex_color'
+WARNING:  StatReload detected changes in 'main.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [8136]
+INFO:__mp_main__:🚀 Running on device: mps

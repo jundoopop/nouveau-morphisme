@@ -1,0 +1,59 @@
+INFO:__main__:🚀 Running on device: mps
+WARNING:dinov2:xFormers not available
+WARNING:dinov2:xFormers not available
+INFO:depth_masking:Initializing Depth-Anything V2 (vitb)...
+INFO:dinov2:using MLP layer as FFN
+INFO:depth_masking:Depth-Anything V2 (vitb) loaded successfully on mps
+INFO:__main__:✅ Depth-guided masking enabled (hybrid mode)
+INFO:sam2_masking:Initializing SAM2 (tiny)...
+WARNING:sam2_masking:SAM2 doesn't support MPS yet, using CPU for SAM2 (tiny model is still fast on CPU)
+INFO:root:Loaded checkpoint sucessfully
+INFO:sam2_masking:SAM2 (tiny) loaded successfully on cpu
+INFO:__main__:✅ SAM2 edge refinement enabled
+INFO:     Will watch for changes in these directories: ['/Users/joonhyeokkwon/term/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [10709] using StatReload
+INFO:__mp_main__:🚀 Running on device: mps
+WARNING:dinov2:xFormers not available
+WARNING:dinov2:xFormers not available
+INFO:depth_masking:Initializing Depth-Anything V2 (vitb)...
+INFO:dinov2:using MLP layer as FFN
+INFO:depth_masking:Depth-Anything V2 (vitb) loaded successfully on mps
+INFO:__mp_main__:✅ Depth-guided masking enabled (hybrid mode)
+INFO:sam2_masking:Initializing SAM2 (tiny)...
+WARNING:sam2_masking:SAM2 doesn't support MPS yet, using CPU for SAM2 (tiny model is still fast on CPU)
+INFO:root:Loaded checkpoint sucessfully
+INFO:sam2_masking:SAM2 (tiny) loaded successfully on cpu
+INFO:__mp_main__:✅ SAM2 edge refinement enabled
+INFO:main:🚀 Running on device: mps
+INFO:depth_masking:Initializing Depth-Anything V2 (vitb)...
+INFO:dinov2:using MLP layer as FFN
+INFO:depth_masking:Depth-Anything V2 (vitb) loaded successfully on mps
+INFO:main:✅ Depth-guided masking enabled (hybrid mode)
+INFO:sam2_masking:Initializing SAM2 (tiny)...
+WARNING:sam2_masking:SAM2 doesn't support MPS yet, using CPU for SAM2 (tiny model is still fast on CPU)
+INFO:root:Loaded checkpoint sucessfully
+INFO:sam2_masking:SAM2 (tiny) loaded successfully on cpu
+INFO:main:✅ SAM2 edge refinement enabled
+INFO:     Started server process [10928]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:main:Starting hybrid background removal pipeline
+INFO:main:Using SAM2 + hybrid depth + segmentation pipeline
+INFO:main:Step 1/4: Multi-stage preprocessing
+INFO:preprocessing:Starting multi-stage background removal
+INFO:preprocessing:Multi-stage background removal complete
+INFO:main:Step 2/4: SAM2 edge refinement
+INFO:root:For numpy array image, we assume (HxWxC) format
+INFO:root:Computing image embeddings for the provided image...
+INFO:root:Image embeddings computed.
+INFO:main:SAM2 refinement complete
+INFO:main:Step 3/4: Depth-guided hybrid masking
+INFO:main:Step 4/4: Applying hybrid mask
+INFO:main:Hybrid mask with SAM2 refinement created successfully
+INFO:main:Image before TripoSR: mode=RGBA, size=(249, 249)
+INFO:main:Generating 3D mesh with TripoSR
+INFO:main:Extracting mesh with config: {'resolution': 256}
+INFO:main:Exporting mesh to GLB format
+INFO:main:✅ Mesh generation complete
+INFO:     127.0.0.1:56122 - "POST /generate-mesh HTTP/1.1" 200 OK

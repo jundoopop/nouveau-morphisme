@@ -1,5 +1,364 @@
 INFO:__main__:🚀 Running on device: mps
-Traceback (most recent call last):
-  File "/Users/joonhyeokkwon/term/backend/main.py", line 68, in <module>
-    from tsr.system import TSR
-ModuleNotFoundError: No module named 'tsr'
+WARNING:dinov2:xFormers not available
+WARNING:dinov2:xFormers not available
+INFO:depth_masking:Initializing Depth-Anything V2 (vitb)...
+INFO:dinov2:using MLP layer as FFN
+INFO:depth_masking:Depth-Anything V2 (vitb) loaded successfully on mps
+INFO:__main__:✅ Depth-guided masking enabled (hybrid mode)
+INFO:sam2_masking:Initializing SAM2 (tiny)...
+WARNING:sam2_masking:SAM2 doesn't support MPS yet, using CPU for SAM2 (tiny model is still fast on CPU)
+INFO:root:Loaded checkpoint sucessfully
+INFO:sam2_masking:SAM2 (tiny) loaded successfully on cpu
+INFO:__main__:✅ SAM2 edge refinement enabled
+INFO:     Will watch for changes in these directories: ['/Users/joonhyeokkwon/term/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [12330] using StatReload
+INFO:__mp_main__:🚀 Running on device: mps
+WARNING:dinov2:xFormers not available
+WARNING:dinov2:xFormers not available
+INFO:depth_masking:Initializing Depth-Anything V2 (vitb)...
+INFO:dinov2:using MLP layer as FFN
+INFO:depth_masking:Depth-Anything V2 (vitb) loaded successfully on mps
+INFO:__mp_main__:✅ Depth-guided masking enabled (hybrid mode)
+INFO:sam2_masking:Initializing SAM2 (tiny)...
+WARNING:sam2_masking:SAM2 doesn't support MPS yet, using CPU for SAM2 (tiny model is still fast on CPU)
+INFO:root:Loaded checkpoint sucessfully
+INFO:sam2_masking:SAM2 (tiny) loaded successfully on cpu
+INFO:__mp_main__:✅ SAM2 edge refinement enabled
+INFO:main:🚀 Running on device: mps
+INFO:depth_masking:Initializing Depth-Anything V2 (vitb)...
+INFO:dinov2:using MLP layer as FFN
+INFO:depth_masking:Depth-Anything V2 (vitb) loaded successfully on mps
+INFO:main:✅ Depth-guided masking enabled (hybrid mode)
+INFO:sam2_masking:Initializing SAM2 (tiny)...
+WARNING:sam2_masking:SAM2 doesn't support MPS yet, using CPU for SAM2 (tiny model is still fast on CPU)
+INFO:root:Loaded checkpoint sucessfully
+INFO:sam2_masking:SAM2 (tiny) loaded successfully on cpu
+INFO:main:✅ SAM2 edge refinement enabled
+INFO:     Started server process [12363]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:preprocessing:Starting multi-stage background removal
+INFO:preprocessing:Multi-stage background removal complete
+INFO:     127.0.0.1:56866 - "POST /remove-bg HTTP/1.1" 200 OK
+INFO:main:Starting hybrid background removal pipeline
+INFO:main:Using SAM2 + hybrid depth + segmentation pipeline
+INFO:main:Step 1/4: Multi-stage preprocessing
+INFO:preprocessing:Starting multi-stage background removal
+INFO:preprocessing:Multi-stage background removal complete
+INFO:main:Step 2/4: SAM2 edge refinement
+INFO:root:For numpy array image, we assume (HxWxC) format
+INFO:root:Computing image embeddings for the provided image...
+INFO:root:Image embeddings computed.
+INFO:main:SAM2 refinement complete
+INFO:main:Step 3/4: Depth-guided hybrid masking
+INFO:main:Step 4/4: Applying hybrid mask
+INFO:main:Hybrid mask with SAM2 refinement created successfully
+INFO:main:Image before TripoSR: mode=RGBA, size=(674, 674)
+INFO:main:Generating 3D mesh with TripoSR
+INFO:main:Extracting mesh with config: {'resolution': 256}
+INFO:main:Exporting mesh to GLB format
+INFO:main:✅ Mesh generation complete
+INFO:     127.0.0.1:56866 - "POST /generate-mesh HTTP/1.1" 200 OK
+INFO:preprocessing:Starting multi-stage background removal
+INFO:preprocessing:Multi-stage background removal complete
+INFO:     127.0.0.1:56896 - "POST /remove-bg HTTP/1.1" 200 OK
+INFO:main:Starting hybrid background removal pipeline
+INFO:main:Using SAM2 + hybrid depth + segmentation pipeline
+INFO:main:Step 1/4: Multi-stage preprocessing
+INFO:preprocessing:Starting multi-stage background removal
+INFO:preprocessing:Multi-stage background removal complete
+INFO:main:Step 2/4: SAM2 edge refinement
+INFO:root:For numpy array image, we assume (HxWxC) format
+INFO:root:Computing image embeddings for the provided image...
+INFO:root:Image embeddings computed.
+INFO:main:SAM2 refinement complete
+INFO:main:Step 3/4: Depth-guided hybrid masking
+INFO:main:Step 4/4: Applying hybrid mask
+INFO:main:Hybrid mask with SAM2 refinement created successfully
+INFO:main:Image before TripoSR: mode=RGBA, size=(1285, 1285)
+INFO:main:Generating 3D mesh with TripoSR
+INFO:main:Extracting mesh with config: {'resolution': 256}
+INFO:main:Exporting mesh to GLB format
+INFO:main:✅ Mesh generation complete
+INFO:     127.0.0.1:56896 - "POST /generate-mesh HTTP/1.1" 200 OK
+INFO:preprocessing:Starting multi-stage background removal
+INFO:preprocessing:Multi-stage background removal complete
+INFO:     127.0.0.1:56915 - "POST /remove-bg HTTP/1.1" 200 OK
+INFO:main:Starting hybrid background removal pipeline
+INFO:main:Using SAM2 + hybrid depth + segmentation pipeline
+INFO:main:Step 1/4: Multi-stage preprocessing
+INFO:preprocessing:Starting multi-stage background removal
+INFO:preprocessing:Multi-stage background removal complete
+INFO:main:Step 2/4: SAM2 edge refinement
+INFO:root:For numpy array image, we assume (HxWxC) format
+INFO:root:Computing image embeddings for the provided image...
+INFO:root:Image embeddings computed.
+INFO:main:SAM2 refinement complete
+INFO:main:Step 3/4: Depth-guided hybrid masking
+INFO:main:Step 4/4: Applying hybrid mask
+INFO:main:Hybrid mask with SAM2 refinement created successfully
+INFO:main:Image before TripoSR: mode=RGBA, size=(552, 552)
+INFO:main:Generating 3D mesh with TripoSR
+INFO:main:Extracting mesh with config: {'resolution': 256}
+INFO:main:Exporting mesh to GLB format
+INFO:main:✅ Mesh generation complete
+INFO:     127.0.0.1:56915 - "POST /generate-mesh HTTP/1.1" 200 OK
+INFO:preprocessing:Starting multi-stage background removal
+INFO:preprocessing:Multi-stage background removal complete
+PERFORMANCE WARNING:
+Thresholded incomplete Cholesky decomposition failed due to insufficient positive-definiteness of matrix A with parameters:
+    discard_threshold = 1.000000e-04
+    shift = 0.000000e+00
+Try decreasing discard_threshold or start with a larger shift
+
+PERFORMANCE WARNING:
+Thresholded incomplete Cholesky decomposition failed due to insufficient positive-definiteness of matrix A with parameters:
+    discard_threshold = 1.000000e-04
+    shift = 1.000000e-04
+Try decreasing discard_threshold or start with a larger shift
+
+PERFORMANCE WARNING:
+Thresholded incomplete Cholesky decomposition failed due to insufficient positive-definiteness of matrix A with parameters:
+    discard_threshold = 1.000000e-04
+    shift = 1.000000e-03
+Try decreasing discard_threshold or start with a larger shift
+
+PERFORMANCE WARNING:
+Thresholded incomplete Cholesky decomposition failed due to insufficient positive-definiteness of matrix A with parameters:
+    discard_threshold = 1.000000e-04
+    shift = 1.000000e-02
+Try decreasing discard_threshold or start with a larger shift
+
+INFO:     127.0.0.1:56922 - "POST /remove-bg HTTP/1.1" 200 OK
+INFO:main:Starting hybrid background removal pipeline
+INFO:main:Using SAM2 + hybrid depth + segmentation pipeline
+INFO:main:Step 1/4: Multi-stage preprocessing
+INFO:preprocessing:Starting multi-stage background removal
+INFO:preprocessing:Multi-stage background removal complete
+INFO:main:Step 2/4: SAM2 edge refinement
+INFO:root:For numpy array image, we assume (HxWxC) format
+INFO:root:Computing image embeddings for the provided image...
+INFO:root:Image embeddings computed.
+INFO:main:SAM2 refinement complete
+INFO:main:Step 3/4: Depth-guided hybrid masking
+INFO:main:Step 4/4: Applying hybrid mask
+INFO:main:Hybrid mask with SAM2 refinement created successfully
+INFO:main:Image before TripoSR: mode=RGBA, size=(503, 503)
+INFO:main:Generating 3D mesh with TripoSR
+INFO:main:Extracting mesh with config: {'resolution': 256}
+INFO:main:Exporting mesh to GLB format
+INFO:main:✅ Mesh generation complete
+PERFORMANCE WARNING:
+Thresholded incomplete Cholesky decomposition failed due to insufficient positive-definiteness of matrix A with parameters:
+    discard_threshold = 1.000000e-04
+    shift = 0.000000e+00
+Try decreasing discard_threshold or start with a larger shift
+
+PERFORMANCE WARNING:
+Thresholded incomplete Cholesky decomposition failed due to insufficient positive-definiteness of matrix A with parameters:
+    discard_threshold = 1.000000e-04
+    shift = 1.000000e-04
+Try decreasing discard_threshold or start with a larger shift
+
+PERFORMANCE WARNING:
+Thresholded incomplete Cholesky decomposition failed due to insufficient positive-definiteness of matrix A with parameters:
+    discard_threshold = 1.000000e-04
+    shift = 1.000000e-03
+Try decreasing discard_threshold or start with a larger shift
+
+PERFORMANCE WARNING:
+Thresholded incomplete Cholesky decomposition failed due to insufficient positive-definiteness of matrix A with parameters:
+    discard_threshold = 1.000000e-04
+    shift = 1.000000e-02
+Try decreasing discard_threshold or start with a larger shift
+
+INFO:     127.0.0.1:56922 - "POST /generate-mesh HTTP/1.1" 200 OK
+INFO:preprocessing:Starting multi-stage background removal
+INFO:preprocessing:Multi-stage background removal complete
+PERFORMANCE WARNING:
+Thresholded incomplete Cholesky decomposition failed due to insufficient positive-definiteness of matrix A with parameters:
+    discard_threshold = 1.000000e-04
+    shift = 0.000000e+00
+Try decreasing discard_threshold or start with a larger shift
+
+PERFORMANCE WARNING:
+Thresholded incomplete Cholesky decomposition failed due to insufficient positive-definiteness of matrix A with parameters:
+    discard_threshold = 1.000000e-04
+    shift = 1.000000e-04
+Try decreasing discard_threshold or start with a larger shift
+
+PERFORMANCE WARNING:
+Thresholded incomplete Cholesky decomposition failed due to insufficient positive-definiteness of matrix A with parameters:
+    discard_threshold = 1.000000e-04
+    shift = 1.000000e-03
+Try decreasing discard_threshold or start with a larger shift
+
+PERFORMANCE WARNING:
+Thresholded incomplete Cholesky decomposition failed due to insufficient positive-definiteness of matrix A with parameters:
+    discard_threshold = 1.000000e-04
+    shift = 1.000000e-02
+Try decreasing discard_threshold or start with a larger shift
+
+INFO:     127.0.0.1:56915 - "POST /remove-bg HTTP/1.1" 200 OK
+INFO:main:Starting hybrid background removal pipeline
+INFO:main:Using SAM2 + hybrid depth + segmentation pipeline
+INFO:main:Step 1/4: Multi-stage preprocessing
+INFO:preprocessing:Starting multi-stage background removal
+INFO:preprocessing:Multi-stage background removal complete
+INFO:main:Step 2/4: SAM2 edge refinement
+INFO:root:For numpy array image, we assume (HxWxC) format
+INFO:root:Computing image embeddings for the provided image...
+INFO:root:Image embeddings computed.
+INFO:main:SAM2 refinement complete
+INFO:main:Step 3/4: Depth-guided hybrid masking
+INFO:main:Step 4/4: Applying hybrid mask
+INFO:main:Hybrid mask with SAM2 refinement created successfully
+INFO:main:Image before TripoSR: mode=RGBA, size=(503, 503)
+INFO:main:Generating 3D mesh with TripoSR
+INFO:main:Extracting mesh with config: {'resolution': 256}
+INFO:main:Exporting mesh to GLB format
+INFO:main:✅ Mesh generation complete
+PERFORMANCE WARNING:
+Thresholded incomplete Cholesky decomposition failed due to insufficient positive-definiteness of matrix A with parameters:
+    discard_threshold = 1.000000e-04
+    shift = 0.000000e+00
+Try decreasing discard_threshold or start with a larger shift
+
+PERFORMANCE WARNING:
+Thresholded incomplete Cholesky decomposition failed due to insufficient positive-definiteness of matrix A with parameters:
+    discard_threshold = 1.000000e-04
+    shift = 1.000000e-04
+Try decreasing discard_threshold or start with a larger shift
+
+PERFORMANCE WARNING:
+Thresholded incomplete Cholesky decomposition failed due to insufficient positive-definiteness of matrix A with parameters:
+    discard_threshold = 1.000000e-04
+    shift = 1.000000e-03
+Try decreasing discard_threshold or start with a larger shift
+
+PERFORMANCE WARNING:
+Thresholded incomplete Cholesky decomposition failed due to insufficient positive-definiteness of matrix A with parameters:
+    discard_threshold = 1.000000e-04
+    shift = 1.000000e-02
+Try decreasing discard_threshold or start with a larger shift
+
+INFO:     127.0.0.1:56915 - "POST /generate-mesh HTTP/1.1" 200 OK
+WARNING:  StatReload detected changes in 'depth_masking.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [12363]
+INFO:__mp_main__:🚀 Running on device: mps
+WARNING:dinov2:xFormers not available
+WARNING:dinov2:xFormers not available
+INFO:depth_masking:Initializing Depth-Anything V2 (vitb)...
+INFO:dinov2:using MLP layer as FFN
+INFO:depth_masking:Depth-Anything V2 (vitb) loaded successfully on mps
+INFO:__mp_main__:✅ Depth-guided masking enabled (hybrid mode)
+INFO:sam2_masking:Initializing SAM2 (tiny)...
+WARNING:sam2_masking:SAM2 doesn't support MPS yet, using CPU for SAM2 (tiny model is still fast on CPU)
+INFO:root:Loaded checkpoint sucessfully
+INFO:sam2_masking:SAM2 (tiny) loaded successfully on cpu
+INFO:__mp_main__:✅ SAM2 edge refinement enabled
+INFO:main:🚀 Running on device: mps
+INFO:depth_masking:Initializing Depth-Anything V2 (vitb)...
+INFO:dinov2:using MLP layer as FFN
+INFO:depth_masking:Depth-Anything V2 (vitb) loaded successfully on mps
+INFO:main:✅ Depth-guided masking enabled (hybrid mode)
+INFO:sam2_masking:Initializing SAM2 (tiny)...
+WARNING:sam2_masking:SAM2 doesn't support MPS yet, using CPU for SAM2 (tiny model is still fast on CPU)
+INFO:root:Loaded checkpoint sucessfully
+INFO:sam2_masking:SAM2 (tiny) loaded successfully on cpu
+INFO:main:✅ SAM2 edge refinement enabled
+INFO:     Started server process [14062]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:preprocessing:Starting multi-stage background removal
+INFO:preprocessing:Multi-stage background removal complete
+PERFORMANCE WARNING:
+Thresholded incomplete Cholesky decomposition failed due to insufficient positive-definiteness of matrix A with parameters:
+    discard_threshold = 1.000000e-04
+    shift = 0.000000e+00
+Try decreasing discard_threshold or start with a larger shift
+
+PERFORMANCE WARNING:
+Thresholded incomplete Cholesky decomposition failed due to insufficient positive-definiteness of matrix A with parameters:
+    discard_threshold = 1.000000e-04
+    shift = 1.000000e-04
+Try decreasing discard_threshold or start with a larger shift
+
+PERFORMANCE WARNING:
+Thresholded incomplete Cholesky decomposition failed due to insufficient positive-definiteness of matrix A with parameters:
+    discard_threshold = 1.000000e-04
+    shift = 1.000000e-03
+Try decreasing discard_threshold or start with a larger shift
+
+INFO:     127.0.0.1:57547 - "POST /remove-bg HTTP/1.1" 200 OK
+INFO:main:Starting hybrid background removal pipeline
+INFO:main:Using SAM2 + hybrid depth + segmentation pipeline
+INFO:main:Step 1/4: Multi-stage preprocessing
+INFO:preprocessing:Starting multi-stage background removal
+INFO:preprocessing:Multi-stage background removal complete
+INFO:main:Step 2/4: SAM2 edge refinement
+INFO:root:For numpy array image, we assume (HxWxC) format
+INFO:root:Computing image embeddings for the provided image...
+INFO:root:Image embeddings computed.
+INFO:main:SAM2 refinement complete
+INFO:main:Step 3/4: Depth-guided hybrid masking
+INFO:main:Step 4/4: Applying hybrid mask
+INFO:main:Hybrid mask with SAM2 refinement created successfully
+INFO:main:Image before TripoSR: mode=RGBA, size=(231, 231)
+INFO:main:Generating 3D mesh with TripoSR
+INFO:main:Extracting mesh with config: {'resolution': 256}
+INFO:main:Exporting mesh to GLB format
+INFO:main:✅ Mesh generation complete
+PERFORMANCE WARNING:
+Thresholded incomplete Cholesky decomposition failed due to insufficient positive-definiteness of matrix A with parameters:
+    discard_threshold = 1.000000e-04
+    shift = 0.000000e+00
+Try decreasing discard_threshold or start with a larger shift
+
+PERFORMANCE WARNING:
+Thresholded incomplete Cholesky decomposition failed due to insufficient positive-definiteness of matrix A with parameters:
+    discard_threshold = 1.000000e-04
+    shift = 1.000000e-04
+Try decreasing discard_threshold or start with a larger shift
+
+PERFORMANCE WARNING:
+Thresholded incomplete Cholesky decomposition failed due to insufficient positive-definiteness of matrix A with parameters:
+    discard_threshold = 1.000000e-04
+    shift = 1.000000e-03
+Try decreasing discard_threshold or start with a larger shift
+
+INFO:     127.0.0.1:57547 - "POST /generate-mesh HTTP/1.1" 200 OK
+WARNING:  StatReload detected changes in 'depth_masking.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [14062]
+INFO:__mp_main__:🚀 Running on device: mps
+WARNING:dinov2:xFormers not available
+WARNING:dinov2:xFormers not available
+INFO:depth_masking:Initializing Depth-Anything V2 (vitb)...
+INFO:dinov2:using MLP layer as FFN
+INFO:depth_masking:Depth-Anything V2 (vitb) loaded successfully on mps
+INFO:__mp_main__:✅ Depth-guided masking enabled (hybrid mode)
+INFO:sam2_masking:Initializing SAM2 (tiny)...
+WARNING:sam2_masking:SAM2 doesn't support MPS yet, using CPU for SAM2 (tiny model is still fast on CPU)
+INFO:root:Loaded checkpoint sucessfully
+INFO:sam2_masking:SAM2 (tiny) loaded successfully on cpu
+INFO:__mp_main__:✅ SAM2 edge refinement enabled
+INFO:main:🚀 Running on device: mps
+INFO:depth_masking:Initializing Depth-Anything V2 (vitb)...
+INFO:dinov2:using MLP layer as FFN
+INFO:depth_masking:Depth-Anything V2 (vitb) loaded successfully on mps
+INFO:main:✅ Depth-guided masking enabled (hybrid mode)
+INFO:sam2_masking:Initializing SAM2 (tiny)...
+WARNING:sam2_masking:SAM2 doesn't support MPS yet, using CPU for SAM2 (tiny model is still fast on CPU)
+INFO:root:Loaded checkpoint sucessfully
+INFO:sam2_masking:SAM2 (tiny) loaded successfully on cpu
+INFO:main:✅ SAM2 edge refinement enabled
+INFO:     Started server process [14108]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.

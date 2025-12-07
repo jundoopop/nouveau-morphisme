@@ -25,9 +25,12 @@ logger = logging.getLogger(__name__)
 # Depth-Anything V2 will be imported dynamically to avoid errors if not installed
 try:
     from depth_anything_v2.dpt import DepthAnythingV2
+
     DEPTH_AVAILABLE = True
 except ImportError:
-    logger.warning("Depth-Anything-V2 not installed. Depth-based masking will be unavailable.")
+    logger.warning(
+        "Depth-Anything-V2 not installed. Depth-based masking will be unavailable."
+    )
     DEPTH_AVAILABLE = False
 
 
@@ -41,7 +44,7 @@ class DepthGuidedMasker:
     3. Combine depth masks with segmentation masks for hybrid approach
     """
 
-    def __init__(self, device: torch.device, model_size: str = 'vitb'):
+    def __init__(self, device: torch.device, model_size: str = "vitb"):
         """
         Initialize Depth-Anything V2 model.
 
@@ -67,21 +70,21 @@ class DepthGuidedMasker:
 
         # Model configurations
         model_configs = {
-            'vits': {
-                'encoder': 'vits',
-                'features': 64,
-                'out_channels': [48, 96, 192, 384]
+            "vits": {
+                "encoder": "vits",
+                "features": 64,
+                "out_channels": [48, 96, 192, 384],
             },
-            'vitb': {
-                'encoder': 'vitb',
-                'features': 128,
-                'out_channels': [96, 192, 384, 768]
+            "vitb": {
+                "encoder": "vitb",
+                "features": 128,
+                "out_channels": [96, 192, 384, 768],
             },
-            'vitl': {
-                'encoder': 'vitl',
-                'features': 256,
-                'out_channels': [256, 512, 1024, 1024]
-            }
+            "vitl": {
+                "encoder": "vitl",
+                "features": 256,
+                "out_channels": [256, 512, 1024, 1024],
+            },
         }
 
         if model_size not in model_configs:
@@ -99,7 +102,9 @@ class DepthGuidedMasker:
 
         # Load checkpoint (use path relative to this file, not CWD)
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        checkpoint_path = os.path.join(current_dir, 'checkpoints', f'depth_anything_v2_{model_size}.pth')
+        checkpoint_path = os.path.join(
+            current_dir, "checkpoints", f"depth_anything_v2_{model_size}.pth"
+        )
 
         if not os.path.exists(checkpoint_path):
             raise FileNotFoundError(
@@ -111,9 +116,7 @@ class DepthGuidedMasker:
             )
 
         # Load weights
-        self.model.load_state_dict(
-            torch.load(checkpoint_path, map_location='cpu')
-        )
+        self.model.load_state_dict(torch.load(checkpoint_path, map_location="cpu"))
         self.model.to(device).eval()
 
         logger.info(f"Depth-Anything V2 ({model_size}) loaded successfully on {device}")
@@ -132,7 +135,7 @@ class DepthGuidedMasker:
             Larger values = farther (background)
         """
         # Convert to RGB numpy array
-        image_rgb = np.array(image.convert('RGB'))
+        image_rgb = np.array(image.convert("RGB"))
 
         # Infer depth
         depth = self.model.infer_image(image_rgb)
@@ -147,7 +150,8 @@ class DepthGuidedMasker:
         image: Image.Image,
         threshold_percentile: int = 30,
         morph_kernel_size: int = 7,
-        blur_size: int = 7
+        blur_size: int = 7,
+        save_debug: bool = False,
     ) -> np.ndarray:
         """
         Create foreground mask by keeping close objects based on depth.
@@ -160,11 +164,14 @@ class DepthGuidedMasker:
                 - Higher (40-50): More depth range included
             morph_kernel_size: Morphological operation kernel size
             blur_size: Edge smoothing blur size
+            save_debug: If True, save debug images (depth map, raw depth mask)
 
         Returns:
             Binary mask (H, W) with values 0-255
         """
-        logger.debug(f"Creating depth mask with threshold_percentile={threshold_percentile}")
+        logger.debug(
+            f"Creating depth mask with threshold_percentile={threshold_percentile}"
+        )
 
         # Get depth map
         depth_normalized = self.estimate_depth(image)
@@ -173,13 +180,14 @@ class DepthGuidedMasker:
         threshold = np.percentile(depth_normalized, threshold_percentile)
         mask = (depth_normalized < threshold).astype(np.uint8) * 255
 
-        logger.debug(f"Depth threshold: {threshold:.3f}, "
-                    f"foreground pixels: {(mask > 0).sum()}/{mask.size}")
+        logger.debug(
+            f"Depth threshold: {threshold:.3f}, "
+            f"foreground pixels: {(mask > 0).sum()}/{mask.size}"
+        )
 
         # Morphological operations to clean up mask
         kernel = cv2.getStructuringElement(
-            cv2.MORPH_ELLIPSE,
-            (morph_kernel_size, morph_kernel_size)
+            cv2.MORPH_ELLIPSE, (morph_kernel_size, morph_kernel_size)
         )
 
         # Fill holes (close gaps in foreground)
@@ -194,6 +202,23 @@ class DepthGuidedMasker:
                 blur_size += 1
             mask = cv2.GaussianBlur(mask, (blur_size, blur_size), 0)
 
+        if save_debug:
+            try:
+                # Save raw depth map
+                depth_vis = self.debug_depth_map(image)
+                depth_vis.save("debug_depth_map.png")
+
+                # Save threshold visualization (what the depth mask sees)
+                Image.fromarray(mask).save(
+                    f"debug_depth_mask_p{threshold_percentile}.png"
+                )
+
+                logger.info(
+                    f"💾 Saved debug images: debug_depth_map.png, debug_depth_mask_p{threshold_percentile}.png"
+                )
+            except Exception as e:
+                logger.warning(f"Failed to save debug images: {e}")
+
         return mask
 
     def hybrid_mask(
@@ -201,7 +226,7 @@ class DepthGuidedMasker:
         image: Image.Image,
         segmentation_mask: np.ndarray,
         depth_percentile: int = 40,
-        strategy: str = "intersection"
+        strategy: str = "intersection",
     ) -> np.ndarray:
         """
         Combine depth mask with segmentation mask for best results.
@@ -230,7 +255,8 @@ class DepthGuidedMasker:
             image,
             threshold_percentile=depth_percentile,
             morph_kernel_size=7,
-            blur_size=5
+            blur_size=5,
+            save_debug=True,  # Always save debug in hybrid mode for now
         )
 
         if strategy == "intersection":
@@ -266,7 +292,7 @@ class DepthGuidedMasker:
             combined = np.where(
                 uncertain_region > 0,
                 depth_mask,  # Use depth in uncertain areas
-                segmentation_mask  # Use segmentation in certain areas
+                segmentation_mask,  # Use segmentation in certain areas
             ).astype(np.uint8)
 
             # Final smoothing
@@ -278,15 +304,13 @@ class DepthGuidedMasker:
                 f"Choose from: 'intersection', 'union', 'depth_guided'"
             )
 
-        logger.debug(f"Hybrid mask created, foreground pixels: {(combined > 0).sum()}/{combined.size}")
+        logger.debug(
+            f"Hybrid mask created, foreground pixels: {(combined > 0).sum()}/{combined.size}"
+        )
 
         return combined
 
-    def apply_mask_to_image(
-        self,
-        image: Image.Image,
-        mask: np.ndarray
-    ) -> Image.Image:
+    def apply_mask_to_image(self, image: Image.Image, mask: np.ndarray) -> Image.Image:
         """
         Apply mask to image to create RGBA with transparency.
 
@@ -298,7 +322,7 @@ class DepthGuidedMasker:
             RGBA PIL image
         """
         # Convert image to RGBA
-        image_rgba = np.array(image.convert('RGBA'))
+        image_rgba = np.array(image.convert("RGBA"))
 
         # Apply mask as alpha channel
         image_rgba[:, :, 3] = mask
@@ -306,9 +330,7 @@ class DepthGuidedMasker:
         return Image.fromarray(image_rgba)
 
     def debug_depth_map(
-        self,
-        image: Image.Image,
-        colormap: int = cv2.COLORMAP_INFERNO
+        self, image: Image.Image, colormap: int = cv2.COLORMAP_INFERNO
     ) -> Image.Image:
         """
         Generate colorized depth map for visualization/debugging.
@@ -338,8 +360,8 @@ class DepthGuidedMasker:
 def depth_remove_background(
     image: Image.Image,
     device: torch.device,
-    model_size: str = 'vitb',
-    depth_percentile: int = 30
+    model_size: str = "vitb",
+    depth_percentile: int = 30,
 ) -> Image.Image:
     """
     Quick depth-based background removal.

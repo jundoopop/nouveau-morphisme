@@ -102,4 +102,5 @@ test_image.png
 # Embarassed
 .claude/
 
+# Pytorch dependency
 *.pth

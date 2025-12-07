@@ -1,0 +1,53 @@
+INFO:__main__:🚀 Running on device: mps
+WARNING:dinov2:xFormers not available
+WARNING:dinov2:xFormers not available
+INFO:depth_masking:Initializing Depth-Anything V2 (vitb)...
+INFO:dinov2:using MLP layer as FFN
+INFO:depth_masking:Depth-Anything V2 (vitb) loaded successfully on mps
+INFO:__main__:✅ Depth-guided masking enabled (hybrid mode)
+INFO:sam2_masking:Initializing SAM2 (tiny)...
+INFO:root:Loaded checkpoint sucessfully
+ERROR:sam2_masking:Failed to load SAM2: Torch not compiled with CUDA enabled
+WARNING:__main__:⚠️  SAM2 edge refinement unavailable: SAM2 initialization failed: Torch not compiled with CUDA enabled
+WARNING:__main__:   Using segmentation masks without SAM2 refinement
+INFO:     Will watch for changes in these directories: ['/Users/joonhyeokkwon/term/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [1834] using StatReload
+INFO:__mp_main__:🚀 Running on device: mps
+WARNING:dinov2:xFormers not available
+WARNING:dinov2:xFormers not available
+INFO:depth_masking:Initializing Depth-Anything V2 (vitb)...
+INFO:dinov2:using MLP layer as FFN
+INFO:depth_masking:Depth-Anything V2 (vitb) loaded successfully on mps
+INFO:__mp_main__:✅ Depth-guided masking enabled (hybrid mode)
+INFO:sam2_masking:Initializing SAM2 (tiny)...
+INFO:root:Loaded checkpoint sucessfully
+ERROR:sam2_masking:Failed to load SAM2: Torch not compiled with CUDA enabled
+WARNING:__mp_main__:⚠️  SAM2 edge refinement unavailable: SAM2 initialization failed: Torch not compiled with CUDA enabled
+WARNING:__mp_main__:   Using segmentation masks without SAM2 refinement
+INFO:main:🚀 Running on device: mps
+INFO:depth_masking:Initializing Depth-Anything V2 (vitb)...
+INFO:dinov2:using MLP layer as FFN
+INFO:depth_masking:Depth-Anything V2 (vitb) loaded successfully on mps
+INFO:main:✅ Depth-guided masking enabled (hybrid mode)
+INFO:sam2_masking:Initializing SAM2 (tiny)...
+INFO:root:Loaded checkpoint sucessfully
+ERROR:sam2_masking:Failed to load SAM2: Torch not compiled with CUDA enabled
+WARNING:main:⚠️  SAM2 edge refinement unavailable: SAM2 initialization failed: Torch not compiled with CUDA enabled
+WARNING:main:   Using segmentation masks without SAM2 refinement
+INFO:     Started server process [1896]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  StatReload detected changes in 'sam2_masking.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [1896]
+INFO:__mp_main__:🚀 Running on device: mps
+WARNING:dinov2:xFormers not available
+WARNING:dinov2:xFormers not available
+INFO:depth_masking:Initializing Depth-Anything V2 (vitb)...
+INFO:dinov2:using MLP layer as FFN
+INFO:depth_masking:Depth-Anything V2 (vitb) loaded successfully on mps
+INFO:__mp_main__:✅ Depth-guided masking enabled (hybrid mode)
+INFO:sam2_masking:Initializing SAM2 (tiny)...

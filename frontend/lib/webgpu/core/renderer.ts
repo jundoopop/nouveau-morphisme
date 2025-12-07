@@ -7,8 +7,9 @@ import { mat4 } from "gl-matrix";
 import { vertexShader } from "../shaders/vertex.wgsl";
 import { fragmentShaderDefault } from "../shaders/fragment-default.wgsl";
 import { fragmentShaderNormal } from "../shaders/fragment-normal.wgsl";
+import { fragmentShaderToon } from "../shaders/fragment-toon.wgsl";
 
-export type ShaderMode = "Default" | "Normal";
+export type ShaderMode = "Default" | "Normal" | "Toon";
 
 export interface RendererOptions {
   device: GPUDevice;
@@ -140,6 +141,10 @@ export class WebGPURenderer {
       Normal: this.device.createShaderModule({
         code: fragmentShaderNormal,
         label: "Fragment Shader - Normal",
+      }),
+      Toon: this.device.createShaderModule({
+        code: fragmentShaderToon,
+        label: "Fragment Shader - Toon",
       }),
     };
 

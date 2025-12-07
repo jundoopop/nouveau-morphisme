@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import Viewer3D from "./Viewer3D";
+import LoadingOverlay from "./LoadingOverlay";
 
 export default function IconGenerator() {
     const [file, setFile] = useState<File | null>(null);
     const [processedImage, setProcessedImage] = useState<string | null>(null);
     const [meshUrl, setMeshUrl] = useState<string | null>(null);
+    const [isGenerating, setIsGenerating] = useState(false);
 
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -28,6 +30,7 @@ export default function IconGenerator() {
                     setProcessedImage(url);
 
                     // Trigger Mesh Generation
+                    setIsGenerating(true);
                     const meshFormData = new FormData();
                     meshFormData.append("file", blob, "processed.png");
 
@@ -45,6 +48,8 @@ export default function IconGenerator() {
                         }
                     } catch (meshError) {
                         console.error("Error generating mesh:", meshError);
+                    } finally {
+                        setIsGenerating(false);
                     }
 
                 } else {
@@ -54,6 +59,22 @@ export default function IconGenerator() {
                 console.error("Error uploading file:", error);
             }
         }
+    };
+
+    const handleReset = () => {
+        // Clean up object URLs to prevent memory leaks
+        if (processedImage) {
+            URL.revokeObjectURL(processedImage);
+        }
+        if (meshUrl) {
+            URL.revokeObjectURL(meshUrl);
+        }
+
+        // Reset all state to initial values
+        setFile(null);
+        setProcessedImage(null);
+        setMeshUrl(null);
+        setIsGenerating(false);
     };
 
     return (
@@ -102,7 +123,12 @@ export default function IconGenerator() {
             </div>
 
             <div className="w-full md:w-2/3 glass-panel flex items-center justify-center relative z-10 overflow-hidden">
-                <Viewer3D imageUrl={processedImage || undefined} meshUrl={meshUrl || undefined} />
+                {isGenerating && <LoadingOverlay />}
+                <Viewer3D
+                    imageUrl={processedImage || undefined}
+                    meshUrl={meshUrl || undefined}
+                    onReset={handleReset}
+                />
             </div>
         </div >
     );

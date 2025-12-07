@@ -2,14 +2,42 @@
 > frontend@0.1.0 dev
 > next dev
 
- ⚠ Port 3000 is in use by process 91942, using available port 3001 instead.
 [baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+ ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of /Users/joonhyeokkwon/term/package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * /Users/joonhyeokkwon/term/frontend/package-lock.json
+
    ▲ Next.js 16.0.5 (Turbopack)
-   - Local:         http://localhost:3001
-   - Network:       http://172.30.1.87:3001
+   - Local:         http://localhost:3000
+   - Network:       http://172.30.1.87:3000
 
  ✓ Starting...
- ⨯ Unable to acquire lock at /Users/joonhyeokkwon/term/frontend/.next/dev/lock, is another instance of next dev running?
-   Suggestion: If you intended to restart next dev, terminate the other process, and then try again.
-[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
-[?25h
+ ✓ Ready in 487ms
+ GET / 200 in 1678ms (compile: 1527ms, render: 152ms)
+ GET / 200 in 837ms (compile: 121ms, render: 716ms)
+ ✓ Compiled in 462ms
+ ✓ Compiled in 577ms
+ GET / 200 in 482ms (compile: 292ms, render: 190ms)
+ GET / 200 in 208ms (compile: 87ms, render: 121ms)
+ ✓ Compiled in 261ms
+ ✓ Compiled in 94ms
+ GET / 200 in 341ms (compile: 137ms, render: 205ms)
+ ✓ Compiled in 77ms
+ GET / 200 in 156ms (compile: 53ms, render: 104ms)
+ GET / 200 in 53ms (compile: 11ms, render: 42ms)
+ ✓ Compiled in 261ms
+ ✓ Compiled in 69ms
+ ✓ Compiled in 34ms
+ ✓ Compiled in 23ms
+ ✓ Compiled in 147ms
+ ✓ Compiled in 34ms
+ ✓ Compiled in 44ms
+ ✓ Compiled in 34ms
+ ✓ Compiled in 81ms
+ GET / 200 in 338ms (compile: 138ms, render: 200ms)
+ GET / 200 in 60ms (compile: 12ms, render: 49ms)
+ ✓ Compiled in 75ms
+ ✓ Compiled in 26ms

@@ -87,15 +87,27 @@ model.to(DEVICE)
 # Initialize Depth-Guided Masker (for hybrid background removal)
 from depth_masking import DepthGuidedMasker
 from preprocessing import enhanced_background_removal
+from sam2_masking import SAM2Refiner
 
 try:
-    depth_masker = DepthGuidedMasker(DEVICE, model_size='vitb')
+    depth_masker = DepthGuidedMasker(DEVICE, model_size="vitb")
     logger.info("✅ Depth-guided masking enabled (hybrid mode)")
     DEPTH_ENABLED = True
 except (ImportError, FileNotFoundError) as e:
     logger.warning(f"⚠️  Depth-guided masking unavailable: {e}")
     logger.warning("   Falling back to multi-stage preprocessing only")
     DEPTH_ENABLED = False
+
+# Initialize SAM2 Refiner (for edge refinement)
+SAM2_ENABLED = False
+try:
+    if DEPTH_ENABLED:  # Only use SAM2 if we have GPU/MPS acceleration
+        sam2_refiner = SAM2Refiner(DEVICE, model_size="tiny")
+        logger.info("✅ SAM2 edge refinement enabled")
+        SAM2_ENABLED = True
+except Exception as e:
+    logger.warning(f"⚠️  SAM2 edge refinement unavailable: {e}")
+    logger.warning("   Using segmentation masks without SAM2 refinement")
 
 
 def get_model_config(device_type):
@@ -122,29 +134,50 @@ async def generate_mesh(file: UploadFile = File(...)):
     4. TripoSR 3D mesh generation
     """
     contents = await file.read()
-    input_image = Image.open(io.BytesIO(contents))
+    input_image: Image.Image = Image.open(io.BytesIO(contents))
 
     logger.info("Starting hybrid background removal pipeline")
 
-    if DEPTH_ENABLED:
-        # ========== HYBRID APPROACH (Best Quality) ==========
-        logger.info("Using hybrid depth + segmentation pipeline")
+    # Ensure input is RGBA for background removal but we might need RGB for models
+    if input_image.mode != "RGBA":
+        input_image = input_image.convert("RGBA")
 
-        # Step 1: Get segmentation mask from multi-stage preprocessing
+    image_rgb = input_image.convert("RGB")  # For depth/TripoSR models
+
+    if DEPTH_ENABLED:
+        # ========== HYBRID + SAM2 APPROACH (Best Quality) ==========
+        logger.info("Using SAM2 + hybrid depth + segmentation pipeline")
+
+        # Step 1: Get initial segmentation mask from multi-stage preprocessing
+        logger.info("Step 1/4: Multi-stage preprocessing")
         segmentation_mask = get_mask_only(input_image, use_grabcut=True)
 
-        # Step 2: Combine with depth for superior results
+        # DEBUG: Save rembg mask
+        Image.fromarray(segmentation_mask).save("debug_rembg_mask.png")
+
+        # Step 2: Refine with SAM2 (if enabled)
+        if SAM2_ENABLED:
+            logger.info("Step 2/4: SAM2 edge refinement")
+            segmentation_mask = sam2_refiner.refine_mask(input_image, segmentation_mask)
+            Image.fromarray(segmentation_mask).save("debug_sam2_mask.png")
+            logger.info("SAM2 refinement complete")
+        else:
+            logger.info("Step 2/4: Skipped (SAM2 not available)")
+
+        # Step 3: Combine with depth for superior results
+        logger.info("Step 3/4: Depth-guided hybrid masking")
         hybrid_mask = depth_masker.hybrid_mask(
             input_image,
             segmentation_mask,
             depth_percentile=35,  # Tune this: 30-40 typical, lower=closer objects only
-            strategy="depth_guided"  # Use depth to refine edges
+            strategy="depth_guided",  # Use depth to refine edges
         )
 
-        # Step 3: Apply combined mask
+        # Step 4: Apply combined mask
+        logger.info("Step 4/4: Applying hybrid mask")
         image_processed = depth_masker.apply_mask_to_image(input_image, hybrid_mask)
 
-        logger.info("Hybrid mask created successfully")
+        logger.info("Hybrid mask with SAM2 refinement created successfully")
 
     else:
         # ========== FALLBACK: Multi-stage only (No depth) ==========
@@ -156,7 +189,7 @@ async def generate_mesh(file: UploadFile = File(...)):
             use_grabcut=True,  # Better quality, adds ~1s
             remove_small_components=True,
             kernel_size=5,
-            blur_size=5
+            blur_size=5,
         )
 
         logger.info("Multi-stage preprocessing complete")
@@ -165,24 +198,47 @@ async def generate_mesh(file: UploadFile = File(...)):
     image_processed = resize_foreground(image_processed, ratio=0.85)
 
     # DEBUG: Log image info before TripoSR
-    logger.info(f"Image before TripoSR: mode={image_processed.mode}, size={image_processed.size}")
+    logger.info(
+        f"Image before TripoSR: mode={image_processed.mode}, size={image_processed.size}"
+    )
 
     # 2. Run TripoSR with error handling
     logger.info("Generating 3D mesh with TripoSR")
     try:
         with torch.no_grad():
-            scene_codes = model(image_processed, device=DEVICE)
+            # Ensure RGB for TripoSR
+            if image_processed.mode == "RGBA":
+                # Create RGB background (white) to handle transparency
+                bg = Image.new("RGB", image_processed.size, (255, 255, 255))
+                bg.paste(image_processed, mask=image_processed.split()[3])
+                model_input = bg
+            else:
+                model_input = image_processed.convert("RGB")
+
+            scene_codes = model(model_input, device=DEVICE)
     except Exception as e:
         logger.error(f"TripoSR failed: {type(e).__name__}: {e}")
-        logger.error(f"Image shape: {np.array(image_processed).shape}, dtype: {np.array(image_processed).dtype}")
+        logger.error(
+            f"Image shape: {np.array(image_processed).shape}, dtype: {np.array(image_processed).dtype}"
+        )
         raise
 
     # 3. Extract Mesh
     config = get_model_config(DEVICE)
     logger.info(f"Extracting mesh with config: {config}")
 
-    meshes = model.extract_mesh(scene_codes, resolution=config["resolution"])
+    meshes = model.extract_mesh(
+        scene_codes, has_vertex_color=True, resolution=config["resolution"]
+    )
     mesh = meshes[0]
+
+    # Refine mesh surface (Laplacian smoothing)
+    logger.info("Refining mesh surface...")
+    try:
+        trimesh.smoothing.filter_laplacian(mesh, iterations=5)
+        logger.info("✅ Mesh smoothing applied")
+    except Exception as e:
+        logger.warning(f"⚠️ Mesh smoothing failed: {e}")
 
     # 4. Export to GLB
     logger.info("Exporting mesh to GLB format")

@@ -1,0 +1,160 @@
+INFO:__main__:🚀 Running on device: mps
+WARNING:dinov2:xFormers not available
+WARNING:dinov2:xFormers not available
+INFO:depth_masking:Initializing Depth-Anything V2 (vitb)...
+INFO:dinov2:using MLP layer as FFN
+INFO:depth_masking:Depth-Anything V2 (vitb) loaded successfully on mps
+INFO:__main__:✅ Depth-guided masking enabled (hybrid mode)
+INFO:sam2_masking:Initializing SAM2 (tiny)...
+WARNING:sam2_masking:SAM2 doesn't support MPS yet, using CPU for SAM2 (tiny model is still fast on CPU)
+INFO:root:Loaded checkpoint sucessfully
+INFO:sam2_masking:SAM2 (tiny) loaded successfully on cpu
+INFO:__main__:✅ SAM2 edge refinement enabled
+INFO:     Will watch for changes in these directories: ['/Users/joonhyeokkwon/term/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [9519] using StatReload
+INFO:__mp_main__:🚀 Running on device: mps
+WARNING:dinov2:xFormers not available
+WARNING:dinov2:xFormers not available
+INFO:depth_masking:Initializing Depth-Anything V2 (vitb)...
+INFO:dinov2:using MLP layer as FFN
+INFO:depth_masking:Depth-Anything V2 (vitb) loaded successfully on mps
+INFO:__mp_main__:✅ Depth-guided masking enabled (hybrid mode)
+INFO:sam2_masking:Initializing SAM2 (tiny)...
+WARNING:sam2_masking:SAM2 doesn't support MPS yet, using CPU for SAM2 (tiny model is still fast on CPU)
+INFO:root:Loaded checkpoint sucessfully
+INFO:sam2_masking:SAM2 (tiny) loaded successfully on cpu
+INFO:__mp_main__:✅ SAM2 edge refinement enabled
+INFO:main:🚀 Running on device: mps
+INFO:depth_masking:Initializing Depth-Anything V2 (vitb)...
+INFO:dinov2:using MLP layer as FFN
+INFO:depth_masking:Depth-Anything V2 (vitb) loaded successfully on mps
+INFO:main:✅ Depth-guided masking enabled (hybrid mode)
+INFO:sam2_masking:Initializing SAM2 (tiny)...
+WARNING:sam2_masking:SAM2 doesn't support MPS yet, using CPU for SAM2 (tiny model is still fast on CPU)
+INFO:root:Loaded checkpoint sucessfully
+INFO:sam2_masking:SAM2 (tiny) loaded successfully on cpu
+INFO:main:✅ SAM2 edge refinement enabled
+INFO:     Started server process [9630]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:main:Starting hybrid background removal pipeline
+INFO:main:Using SAM2 + hybrid depth + segmentation pipeline
+INFO:main:Step 1/4: Multi-stage preprocessing
+INFO:preprocessing:Starting multi-stage background removal
+INFO:preprocessing:Multi-stage background removal complete
+INFO:main:Step 2/4: SAM2 edge refinement
+INFO:root:For numpy array image, we assume (HxWxC) format
+INFO:root:Computing image embeddings for the provided image...
+INFO:root:Image embeddings computed.
+INFO:main:SAM2 refinement complete
+INFO:main:Step 3/4: Depth-guided hybrid masking
+INFO:main:Step 4/4: Applying hybrid mask
+INFO:main:Hybrid mask with SAM2 refinement created successfully
+INFO:main:Image before TripoSR: mode=RGBA, size=(249, 249)
+INFO:main:Generating 3D mesh with TripoSR
+INFO:main:Extracting mesh with config: {'resolution': 256}
+INFO:     127.0.0.1:55992 - "POST /generate-mesh HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/opt/anaconda3/lib/python3.12/site-packages/uvicorn/protocols/http/h11_impl.py", line 403, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/lib/python3.12/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/lib/python3.12/site-packages/fastapi/applications.py", line 1134, in __call__
+    await super().__call__(scope, receive, send)
+  File "/opt/anaconda3/lib/python3.12/site-packages/starlette/applications.py", line 107, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/opt/anaconda3/lib/python3.12/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/opt/anaconda3/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/opt/anaconda3/lib/python3.12/site-packages/starlette/middleware/cors.py", line 85, in __call__
+    await self.app(scope, receive, send)
+  File "/opt/anaconda3/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/opt/anaconda3/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/opt/anaconda3/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/opt/anaconda3/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/opt/anaconda3/lib/python3.12/site-packages/starlette/routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/opt/anaconda3/lib/python3.12/site-packages/starlette/routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "/opt/anaconda3/lib/python3.12/site-packages/starlette/routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "/opt/anaconda3/lib/python3.12/site-packages/fastapi/routing.py", line 125, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/opt/anaconda3/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/opt/anaconda3/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/opt/anaconda3/lib/python3.12/site-packages/fastapi/routing.py", line 111, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/lib/python3.12/site-packages/fastapi/routing.py", line 391, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/lib/python3.12/site-packages/fastapi/routing.py", line 290, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/joonhyeokkwon/term/backend/main.py", line 226, in generate_mesh
+    meshes = model.extract_mesh(
+             ^^^^^^^^^^^^^^^^^^^
+  File "/Users/joonhyeokkwon/term/backend/tsr/system.py", line 185, in extract_mesh
+    v_pos, t_pos_idx = self.isosurface_helper(-(density - threshold))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1751, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1762, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/joonhyeokkwon/term/backend/tsr/models/isosurface.py", line 46, in forward
+    v_pos, t_pos_idx = self.mc_func(level.detach(), 0.0)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/lib/python3.12/site-packages/torchmcubes/__init__.py", line 20, in marching_cubes
+    return mc.mcubes_cpu(vol, thresh)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: vol must be a CPU tensor
+Exception raised from mcubes_cpu at /private/var/folders/1t/0ng9w2295vsc_jlctrvtjd8m0000gn/T/pip-req-build-vxkg1x4b/cxx/mcubes_cpu.cpp:478 (most recent call first):
+frame #0: c10::Error::Error(c10::SourceLocation, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>>) + 52 (0x1019b7fd8 in libc10.dylib)
+frame #1: c10::detail::torchCheckFail(char const*, char const*, unsigned int, char const*) + 192 (0x1019b4d9c in libc10.dylib)
+frame #2: pybind11::error_already_set::m_fetched_error_deleter(pybind11::detail::error_fetch_and_normalize*) + 59832 (0x324224100 in torchmcubes_module.cpython-312-darw)
+frame #3: pybind11::error_already_set::m_fetched_error_deleter(pybind11::detail::error_fetch_and_normalize*) + 50252 (0x324221b94 in torchmcubes_module.cpython-312-darw)
+frame #4: pybind11::error_already_set::m_fetched_error_deleter(pybind11::detail::error_fetch_and_normalize*) + 25824 (0x32421bc28 in torchmcubes_module.cpython-312-darw)
+frame #5: cfunction_call + 72 (0x10089dd6c in python3.12)
+frame #6: _PyEval_EvalFrameDefault + 222788 (0x1009a7a10 in python3.12)
+frame #7: method_vectorcall + 180 (0x10083b844 in python3.12)
+frame #8: _PyEval_EvalFrameDefault + 240116 (0x1009abdc0 in python3.12)
+frame #9: method_vectorcall + 180 (0x10083b844 in python3.12)
+frame #10: _PyEval_EvalFrameDefault + 240116 (0x1009abdc0 in python3.12)
+frame #11: _PyObject_Call_Prepend + 156 (0x100838d2c in python3.12)
+frame #12: slot_tp_call + 132 (0x1008ca924 in python3.12)
+frame #13: _PyEval_EvalFrameDefault + 222788 (0x1009a7a10 in python3.12)
+frame #14: gen_send_ex2 + 196 (0x100854800 in python3.12)
+frame #15: task_step_impl + 436 (0x1029ccff0 in _asyncio.cpython-312-darwin.so)
+frame #16: task_step + 60 (0x1029cdf40 in _asyncio.cpython-312-darwin.so)
+frame #17: _PyObject_MakeTpCall + 376 (0x100835d74 in python3.12)
+frame #18: context_run + 104 (0x1009d0714 in python3.12)
+frame #19: cfunction_vectorcall_FASTCALL_KEYWORDS + 92 (0x10089e8f8 in python3.12)
+frame #20: _PyEval_EvalFrameDefault + 240116 (0x1009abdc0 in python3.12)
+frame #21: PyEval_EvalCode + 260 (0x10096ea64 in python3.12)
+frame #22: run_mod + 288 (0x100a1eef0 in python3.12)
+frame #23: PyRun_SimpleStringFlags + 176 (0x100a2185c in python3.12)
+frame #24: Py_RunMain + 772 (0x100a491bc in python3.12)
+frame #25: pymain_main + 552 (0x100a4a684 in python3.12)
+frame #26: main + 56 (0x1007c54e4 in python3.12)
+frame #27: start + 7184 (0x19beddd54 in dyld)
+
+WARNING:  StatReload detected changes in 'tsr/system.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [9630]
+python3(10337) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+INFO:__mp_main__:🚀 Running on device: mps

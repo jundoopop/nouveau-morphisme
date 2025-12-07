@@ -4,7 +4,6 @@ import { Canvas, useLoader } from "@react-three/fiber";
 import { OrbitControls, Environment } from "@react-three/drei";
 import { Suspense, useEffect, useState, useMemo } from "react";
 import * as THREE from "three";
-import { WebGPURenderer } from "three/webgpu";
 
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { isWebGPUSupported } from "../lib/webgpu/core/device";
@@ -13,6 +12,7 @@ import Viewer3DWebGPU from "./Viewer3DWebGPU";
 interface Viewer3DProps {
   imageUrl?: string;
   meshUrl?: string;
+  onReset?: () => void;
 }
 
 interface TextureMeshProps {
@@ -134,8 +134,36 @@ function RotatableGroup({ children }: RotatableGroupProps) {
   return <group rotation={new THREE.Euler(...rotation)}>{children}</group>;
 }
 
-export default function Viewer3D({ imageUrl, meshUrl }: Viewer3DProps) {
-  const [frameloop, setFrameloop] = useState<"always" | "demand">("always");
+interface TorusKnotMeshProps {
+  shaderMode: ShaderMode;
+}
+
+function TorusKnotMesh({ shaderMode }: TorusKnotMeshProps) {
+  const material = useMemo(() => {
+    switch (shaderMode) {
+      case "Toon":
+        return <meshToonMaterial color={0x9333ea} />;
+      case "Shiny":
+        return <meshStandardMaterial color={0x9333ea} roughness={0.1} metalness={0.8} />;
+      case "Wireframe":
+        return <meshBasicMaterial color={0x00ff00} wireframe />;
+      case "Normal":
+        return <meshNormalMaterial />;
+      case "Default":
+      default:
+        return <meshStandardMaterial color={0x9333ea} roughness={0.5} metalness={0.3} />;
+    }
+  }, [shaderMode]);
+
+  return (
+    <mesh>
+      <torusKnotGeometry args={[1, 0.3, 100, 16]} />
+      {material}
+    </mesh>
+  );
+}
+
+export default function Viewer3D({ imageUrl, meshUrl, onReset }: Viewer3DProps) {
   const [shaderMode, setShaderMode] = useState<ShaderMode>("Default");
   const [lightingPreset, setLightingPreset] = useState<LightingPreset>("city");
   const [useWebGPU, setUseWebGPU] = useState(false);
@@ -148,7 +176,7 @@ export default function Viewer3D({ imageUrl, meshUrl }: Viewer3DProps) {
 
   // Render WebGPU version if enabled
   if (useWebGPU && webGPUAvailable) {
-    return <Viewer3DWebGPU imageUrl={imageUrl} meshUrl={meshUrl} onSwitchToWebGL={() => setUseWebGPU(false)} />;
+    return <Viewer3DWebGPU imageUrl={imageUrl} meshUrl={meshUrl} onSwitchToWebGL={() => setUseWebGPU(false)} onReset={onReset} />;
   }
 
   return (
@@ -168,10 +196,7 @@ export default function Viewer3D({ imageUrl, meshUrl }: Viewer3DProps) {
             ) : imageUrl ? (
               <TextureMesh url={imageUrl} />
             ) : (
-              <mesh>
-                <torusKnotGeometry args={[1, 0.3, 100, 16]} />
-                <meshNormalMaterial />
-              </mesh>
+              <TorusKnotMesh shaderMode={shaderMode} />
             )}
           </RotatableGroup>
         </Suspense>
@@ -186,6 +211,19 @@ export default function Viewer3D({ imageUrl, meshUrl }: Viewer3DProps) {
 
       {/* Controls */}
       <div className="absolute top-4 right-4 flex flex-col gap-2 bg-black/60 p-3 rounded-lg backdrop-blur-sm">
+        {/* Initialize Button */}
+        {(meshUrl || imageUrl) && onReset && (
+          <div className="flex flex-col gap-1 pb-2 border-b border-gray-700">
+            <label className="text-xs text-gray-300 font-bold">Reset</label>
+            <button
+              onClick={onReset}
+              className="bg-orange-600 hover:bg-orange-500 text-white text-xs py-1 px-2 rounded transition-colors"
+            >
+              Initialize (Torus Knot)
+            </button>
+          </div>
+        )}
+
         {/* WebGPU Toggle */}
         {webGPUAvailable && (
           <div className="flex flex-col gap-1 pb-2 border-b border-gray-700">
