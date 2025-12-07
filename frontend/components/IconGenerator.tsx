@@ -57,8 +57,12 @@ export default function IconGenerator() {
     };
 
     return (
-        <div className="flex flex-col md:flex-row h-screen bg-black text-white p-4 gap-4">
-            <div className="w-full md:w-1/3 flex flex-col gap-4 p-4 bg-gray-800 rounded-xl">
+        <div className="flex flex-col md:flex-row h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-black text-white p-4 gap-4 overflow-hidden relative">
+            {/* Ambient Background Blobs */}
+            <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-purple-600 rounded-full mix-blend-screen filter blur-[120px] opacity-30 animate-pulse"></div>
+            <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-blue-600 rounded-full mix-blend-screen filter blur-[120px] opacity-30 animate-pulse delay-1000"></div>
+
+            <div className="w-full md:w-1/3 flex flex-col gap-4 p-6 glass-panel z-10">
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
                     3D Icon Composer
                 </h1>
@@ -79,8 +83,8 @@ export default function IconGenerator() {
                 </div>
 
                 {file && (
-                    <div className="p-2 bg-gray-700 rounded">
-                        <p className="text-xs text-gray-300">Selected: {file.name}</p>
+                    <div className="p-3 glass-dark rounded-lg flex items-center justify-between border border-white/10">
+                        <p className="text-xs text-blue-200">Selected: {file.name}</p>
                     </div>
                 )}
 
@@ -97,7 +101,7 @@ export default function IconGenerator() {
                 </button>
             </div>
 
-            <div className="w-full md:w-2/3 bg-gray-900 rounded-xl border border-gray-800 flex items-center justify-center relative">
+            <div className="w-full md:w-2/3 glass-panel flex items-center justify-center relative z-10 overflow-hidden">
                 <Viewer3D imageUrl={processedImage || undefined} meshUrl={meshUrl || undefined} />
             </div>
         </div >
