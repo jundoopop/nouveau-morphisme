@@ -17,13 +17,7 @@ Furthermore, it shows a journey to the dual-rendering engine system, allowing us
 
 ## 2\. Demo & Screenshots
 
-> *[Please insert screenshots of your running application here to avoid the -4 penalty]*
-
-| **Input Image** | **3D Generation (WebGL)** | **WebGPU PBR Mode** |
-| :---: | :---: | :---: |
-|  |  |  |
-| *Original 2D Icon* | *Generated Mesh* | *Custom Shader w/ Fresnel* |
-
+(https://youtu.be/WrutbOXDOD4?si=TDU7uj3shH8YBjfL)
 -----
 
 ## 3\. Features
